@@ -6,7 +6,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
@@ -390,23 +389,6 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 		for(Term current:a.terms)
 			current=current.clone();
 		return a;
-	}
-	
-	public ArrayList<Expression> factor()
-	{
-		ArrayList<Expression> ans=new ArrayList<Expression>();
-		Term denom=new Term(Constant.ONE);
-		for(Term current:terms)
-		{
-			for(Map.Entry<Character,Constant> on:current.vars.entrySet())
-				if(on.getValue().compareTo(new Constant())<0&&!(denom.vars.containsKey(on.getKey())&&denom.vars.get(on.getKey()).compareTo(on.getValue())>=0))
-					;
-		}
-		Term fact=Term.gcd(terms);
-		ans.add(new Expression(fact));
-		Expression remaining=new Expression(Expression.raiseAndDistribute(new Expression(fact),clone(),Expression.NEGATE));
-		
-		return ans;
 	}
 
 	/**
