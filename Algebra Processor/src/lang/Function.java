@@ -15,7 +15,7 @@ public abstract class Function
 {
 	/**
 	 * An ArrayList of recognized Functions, used by Expression to recognize functions i.e. so
-	 * sin(stuff) is the geometric sine, not s*i*n(stuff)
+	 * sin(parameter) is the geometric sine, not s*i*n*(parameter)
 	 * @see registerFunc
 	 */
 	static ArrayList<Function> recognizeFunc=new ArrayList<Function>(0);
@@ -51,7 +51,7 @@ public abstract class Function
 	 */
 	public abstract String getSig();
 
-	public String toString()
+	@Override public String toString()
 	{
 		String ans=getSig()+'(';
 		for(Expression current:input)

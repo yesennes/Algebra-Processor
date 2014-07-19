@@ -66,7 +66,7 @@ public class General
 	{
 		char[] copy=Arrays.copyOf(array,array.length+array2.length);
 		System.arraycopy(Arrays.copyOf(array2,array2.length),0,copy,array.length,array2.length);
-		return(copy);
+		return copy;
 	}
 
 	/**
@@ -80,23 +80,7 @@ public class General
 	{
 		double[] copy=Arrays.copyOf(array,array.length+array2.length);
 		System.arraycopy(Arrays.copyOf(array2,array2.length),0,copy,array.length,array2.length);
-		return(copy);
-	}
-
-	/**
-	 * Concatenates two arrays.
-	 * 
-	 * @param array Array to concatenate to.
-	 * @param array2 Array to concatenate on the end of array.
-	 * @return The concatenation of array and array2.
-	 */
-	public static <T extends BetterCloneable<T>>T[] concatenate(T[] array,T[] array2)
-	{
-		T[] copy=Arrays.copyOf(array,array.length+array2.length);
-		System.arraycopy(Arrays.copyOf(array2,array2.length),0,copy,array.length,array2.length);
-		for(int i=0;i<copy.length;i++)
-			copy[i]=copy[i].clone();;
-		return(copy);
+		return copy;
 	}
 
 	/**
@@ -136,14 +120,14 @@ public class General
 	 * @param array The array to delete from.
 	 * @return An array with the value deleted.
 	 */
-	public static <T>T[] delFromArray(int index,T[] array)
+	public static <T> T[] delFromArray(int index,T[] array)
 	{
 		T[] copy=Arrays.copyOf(array,array.length-1);
 		System.arraycopy(array,index+1,copy,index,copy.length-index);
 		return copy;
 	}
 
-	public static <T>T[] swap(int index1,int index2,T[] array)
+	public static <T> T[] swap(int index1,int index2,T[] array)
 	{
 		T temp=array[index1];
 		array[index1]=array[index2];
@@ -169,7 +153,7 @@ public class General
 		}
 	}
 
-	public static <T extends Comparable<T>> T max(Collection<T> a)
+	public static <T extends Comparable<? super T>> T max(Collection<T> a)
 	{
 		T max=null;
 		for(T current:a)

@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.TreeSet;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
@@ -17,8 +16,8 @@ import java.util.TreeMap;
  * @author Luke Senseney
  * 
  */
-public class Term implements Comparable<Term>,BetterCloneable<Term>
-{// start class
+public class Term implements Comparable<Term>
+{
 	/**
 	 * The coefficient of the Term.
 	 */
@@ -35,10 +34,10 @@ public class Term implements Comparable<Term>,BetterCloneable<Term>
 	 * Term with no Variables, and a coefficient of -1.
 	 */
 	public static Term NEGATE=new Term(Constant.NEGATE);
-	public TreeSet<Expression> restrictions=new TreeSet<Expression>();
+	public HashSet<Expression> restrictions=new HashSet<Expression>();
 
 	/**
-	 * Creates a new Term from a String. Garbage in, Garbage out, if the String is not a correctly
+	 * Creates a new Term from a String. Garbage in, Garbage out; if the String is not a correctly
 	 * formated Term, will attempt to read.
 	 * 
 	 * @param newTerm the String to make a Term from.
@@ -53,7 +52,7 @@ public class Term implements Comparable<Term>,BetterCloneable<Term>
 		char var='\0';
 		Expression finalPow;
 		for(char current:newTerm.toCharArray())
-		{// start for loop
+		{
 			if(current=='(')
 				inParentheses++;
 			if(raised)
@@ -150,7 +149,7 @@ public class Term implements Comparable<Term>,BetterCloneable<Term>
 					}else
 					{
 						if(inverse)
-							finalPow.terms.get(0).coeff.numerator-=finalPow.terms.get(0).coeff.numerator;
+							finalPow.terms.get(0).coeff.numerator=-finalPow.terms.get(0).coeff.numerator;
 						addExponent(var,finalPow.terms.get(0).coeff);
 						var='\0';
 					}
@@ -190,7 +189,9 @@ public class Term implements Comparable<Term>,BetterCloneable<Term>
 	 */
 	public Term(Constant newCoeff)
 	{
-		this(newCoeff,new TreeMap<Character,Constant>(),new TreeMap<Expression,Expression>());
+		coeff=newCoeff;
+		undistr=new TreeMap<Expression,Expression>();
+		vars=new TreeMap<Character,Constant>();
 	}
 
 	/**
@@ -221,9 +222,37 @@ public class Term implements Comparable<Term>,BetterCloneable<Term>
 	 */
 	public void simplifyTerm()
 	{// start simplifyTerm
+		Term toBe=new Term(new Constant(1));
+		boolean removed=false;
+		Iterator<Entry<Expression,Expression>> iter=undistr.entrySet().iterator();
+		while(iter.hasNext())
+		{
+			Entry<Expression,Expression> current=iter.next();
+			if(current.getKey().terms.size()==1&&current.getValue().isConstant())
+			{
+				toBe=multiply(toBe,Term.raise(current.getKey().terms.get(0),current.getValue().terms.get(0).coeff));
+				iter.remove();
+				removed=true;
+			}
+		}
+		Collection<Expression> removeFrom=undistr.values();
+		while(removeFrom.remove(Expression.ZERO));
+		if(removed)
+		{
+			toBe=multiply(toBe,this);
+			coeff=toBe.coeff;
+			vars=toBe.vars;
+			undistr=toBe.undistr;
+		}
+		Constant inRoot=coeff.roots.get(new Constant(2));
+		if(inRoot!=null&&inRoot.numerator<0)
+		{
+			coeff.roots.get(new Constant(2)).numerator*=-1;
+			addExponent('\u05D0',Constant.ONE);
+		}
 		Constant imaginary=vars.get('\u05D0');
 		if(imaginary!=null)
-			switch(imaginary.numerator%4)
+			switch((int)imaginary.numerator%4)
 			{
 				case 0:
 					imaginary.numerator=0;
@@ -238,12 +267,15 @@ public class Term implements Comparable<Term>,BetterCloneable<Term>
 				case 3:
 					imaginary.numerator=1;
 					coeff.multiply(Constant.NEGATE);
-					break;
 			}
 		Collection<Constant> values=vars.values();
 		while(values.remove(new Constant()));
-		Collection<Expression> removeFrom=undistr.values();
-		while(removeFrom.remove(Expression.ZERO));
+		if(undistr.containsKey(Expression.ZERO))
+		{
+			coeff=new Constant();
+			vars=new TreeMap<Character,Constant>();
+			undistr=new TreeMap<Expression,Expression>();
+		}
 	}
 
 	/**
@@ -387,7 +419,7 @@ public class Term implements Comparable<Term>,BetterCloneable<Term>
 				newTerm=current;
 			else
 				newTerm=Term.gcd(current,newTerm);
-		return newTerm;
+		return newTerm==null?new Term(new Constant()):newTerm;
 	}
 
 	/**
@@ -401,6 +433,11 @@ public class Term implements Comparable<Term>,BetterCloneable<Term>
 		Term a=(Term)other;
 		return coeff.equals(a.coeff)&&Term.isLikeTerm(this,a);
 	}
+	
+	@Override public int hashCode()
+	{
+		return undistr.hashCode()+vars.hashCode()+coeff.hashCode();
+	}
 
 	@Override public Term clone()
 	{
@@ -411,16 +448,16 @@ public class Term implements Comparable<Term>,BetterCloneable<Term>
 	}
 
 	/**
-	 * Checks if the Term is an integer
+	 * Checks if the Term is a constant
 	 * 
-	 * @return if the Term is an integer, true, else false.
+	 * @return if the Term is an constant, true, else false.
 	 */
 	public boolean isConstant()
 	{
-		return vars.size()==0&&undistr.size()==0&&coeff.isInt();
+		return vars.size()==0&&undistr.size()==0&&coeff.isRat();
 	}
 
-	public int compareTo(Term o)
+	@Override public int compareTo(Term o)
 	{
 		Constant varMax=General.max(vars.values());
 		Constant oVarMax=General.max(o.vars.values());
@@ -490,6 +527,17 @@ public class Term implements Comparable<Term>,BetterCloneable<Term>
 		return new Term(a.coeff,a.vars,a.undistr);
 	}
 
+	public static Term raise(Term a,Constant b)
+	{
+		a=a.clone();
+		a.coeff.raise(b);
+		for(Constant current:a.vars.values())
+			current.multiply(b);
+		for(Entry<Expression,Expression> current:a.undistr.entrySet())
+			current.setValue(new Expression(Expression.distribute(current.getValue(),new Expression(new Term(b)))));
+		return a;
+	}
+
 	/**
 	 * Gets an array of variables in this.
 	 * 
@@ -504,16 +552,28 @@ public class Term implements Comparable<Term>,BetterCloneable<Term>
 		return var;
 	}
 
-	public String toString()
+	@Override public String toString()
 	{
 		String output="";
 		if(coeff.compareTo(new Constant())>=0)
 			output+="+";
-		if(!(coeff.equals(Constant.ONE)||coeff.equals(Constant.NEGATE))||(vars.size()==0&&undistr.size()==0))
-			output+=coeff;
-		else
-			if(coeff.equals(Constant.NEGATE))
+		boolean isConst=isConstant();
+		if(coeff.numerator==-1&&!isConst)
 				output+="-";
+		else if(coeff.numerator!=1||isConst)
+			output+=coeff.numerator;
+		for(Entry<Integer,Constant> current:coeff.roots.entrySet())
+		{
+			if(current.getKey()==2)
+				output+="\u221a";
+			else if(current.getKey()==3)
+				output+="\u221b";
+			else if(current.getKey()==4)
+				output+="\u221c";
+			else
+				output+=(char)(8304+current.getKey())+"\u221a";
+			output+='('+current.getValue().toString()+')';
+		}
 		for(Entry<Character,Constant> current:vars.entrySet())
 		{
 			output+=current.getKey();
@@ -525,6 +585,8 @@ public class Term implements Comparable<Term>,BetterCloneable<Term>
 				output+='('+current.getKey().toString()+")^"+(current.getValue().terms.size()==1?current.getValue().toString():"("+current.getValue()+')');
 			else
 				output+=current.getKey().toString()+'^'+(current.getValue().terms.size()==1?current.getValue().toString():"("+current.getValue()+')');
+		if(coeff.denominator!=1)
+			output+="/"+coeff.denominator;
 		output=output.replace("\u05D0",new String(Character.toChars(120050)));
 		return output;
 	}

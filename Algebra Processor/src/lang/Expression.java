@@ -6,7 +6,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
@@ -16,7 +16,7 @@ import java.util.TreeMap;
  * @author Luke Senseney
  * 
  */
-public class Expression implements Comparable<Expression>,BetterCloneable<Expression>
+public class Expression implements Comparable<Expression>
 {
 	/**
 	 * Term array that is added to make this Expression
@@ -27,13 +27,13 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 	 */
 	public boolean isEquation=false;
 	/**
+	 * Expression with no terms
+	 */
+	public static final Expression ZERO=new Expression();
+	/**
 	 * Expression with a single term, 1
 	 */
 	public static final Expression ONE=new Expression(new Term(Constant.ONE));
-	/**
-	 * Expression with a single term, 0
-	 */
-	public static final Expression ZERO=new Expression(new Term(new Constant(0)));
 	/**
 	 * Expression with a single term, -1
 	 */
@@ -154,21 +154,30 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 		}
 		if(coeff.startsWith("/"))
 			coeff='1'+coeff;
-		if(!leftSide)
-			coeff='-'+coeff;
 		if(paren.equals(""))
-			terms.add(new Term(coeff));
+		{
+			Term toAdd=new Term(coeff);
+			if(!leftSide)
+				toAdd.coeff.numerator*=-1;
+			terms.add(toAdd);
+		}
 		else
+		{
+			ArrayList<Term> toAdd;
 			if(power.equals(""))
 				if(coeff.equals(""))
-					terms.addAll(!inverse?new Expression(paren).terms:raise(new Expression(paren),NEGATE));
+					toAdd=!inverse?new Expression(paren).terms:raise(new Expression(paren),NEGATE);
 				else
-					terms.addAll(distribute(!inverse?new Expression(paren):new Expression(raise(new Expression(paren),NEGATE)),new Expression(coeff)));
+					toAdd=distribute(!inverse?new Expression(paren):new Expression(raise(new Expression(paren),NEGATE)),new Expression(coeff));
 			else
 				if(coeff.equals(""))
-					terms.addAll(raise(new Expression(paren),!inverse?new Expression(power):new Expression(distribute(new Expression(power),NEGATE))));
+					toAdd=raise(new Expression(paren),!inverse?new Expression(power):new Expression(distribute(new Expression(power),NEGATE)));
 				else
-					terms.addAll(raiseAndDistribute(new Expression(paren),new Expression(coeff),!inverse?new Expression(power):new Expression(distribute(new Expression(power),NEGATE))));
+					toAdd=raiseAndDistribute(new Expression(paren),new Expression(coeff),!inverse?new Expression(power):new Expression(distribute(new Expression(power),NEGATE)));
+			if(!leftSide)
+				toAdd=distribute(toAdd,NEGATE.terms);
+			terms.addAll(toAdd);
+		}
 		simplifyTerms();
 	}
 
@@ -209,6 +218,7 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 
 	/**
 	 * Raises expression to power.
+	 * 
 	 * @param expression the base
 	 * @param power the exponent
 	 * @return expression^power
@@ -218,6 +228,7 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 		if(power.isConstant())
 			if(expression.terms.size()==1)
 			{
+				expression=expression.clone();
 				expression.terms.get(0).coeff.raise(power.terms.get(0).coeff);
 				for(Constant current:expression.terms.get(0).vars.values())
 					current.multiply(power.terms.get(0).coeff);
@@ -230,12 +241,13 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 					expression=ONE;
 				for(int i=1;i<Math.abs(power.terms.get(0).coeff.numerator);i++)
 					expression=new Expression(distribute(expression,original));
-				if(power.terms.get(0).coeff.numerator<0)
+				if(power.terms.get(0).coeff.numerator<0||power.terms.get(0).coeff.denominator>1)
 				{
 					TreeMap<Expression,Expression> d=new TreeMap<Expression,Expression>();
 					Constant p=new Constant(power.terms.get(0).coeff.denominator);
 					p.invert();
-					p.multiply(Constant.NEGATE);
+					if(power.terms.get(0).coeff.numerator<0)
+						p.multiply(Constant.NEGATE);
 					d.put(expression,new Expression(new Term(p)));
 					expression=new Expression(new Term(Constant.ONE,new TreeMap<Character,Constant>(),d));
 				}
@@ -261,6 +273,7 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 
 	/**
 	 * Raises expression to power.
+	 * 
 	 * @param expression the base
 	 * @param power the exponent
 	 * @return expression^power
@@ -272,6 +285,7 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 
 	/**
 	 * Raises an expression to another and then multiplies by power.
+	 * 
 	 * @param expression the base
 	 * @param multiplier the expression the be multiplied.
 	 * @param power the exponent
@@ -284,6 +298,7 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 
 	/**
 	 * Raises an expression to another and then multiplies by power.
+	 * 
 	 * @param expression the base
 	 * @param multiplier the expression the be multiplied.
 	 * @param power the exponent
@@ -329,19 +344,30 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 	public void simplifyTerms()
 	{// Start simplifyTerms
 		for(int i=0;i<terms.size();i++)
+		{
+			Iterator<Entry<Expression,Expression>> iter=terms.get(i).undistr.entrySet().iterator();
+			while(iter.hasNext())
+			{
+				Entry<Expression,Expression> current=iter.next();
+				if(current.getValue().isConstant()&&current.getValue().terms.get(0).coeff.numerator>1)
+				{
+					iter.remove();
+					terms.addAll(raiseAndDistribute(current.getKey(),current.getValue(),new Expression(terms.get(i))));
+				}
+			}
+		}
+		for(int i=0;i<terms.size();i++)
 			for(int j=terms.size()-1;j>i;j--)
-				try{
+				try
+				{
 					if(Term.isLikeTerm(terms.get(j),terms.get(i)))
 					{
 						terms.get(i).coeff.add(terms.get(j).coeff);
 						terms.remove(j);
 					}
 				}catch(DifferentRoots e)
-				{
-				}
-		for(int i=terms.size()-1;i>-1;i--)
-			if(terms.get(i).coeff.equals(new Constant()))
-				terms.remove(i);
+				{}
+		terms.removeIf(t->t.coeff.equals(new Constant()));
 		Collections.sort(terms);
 	}
 
@@ -351,8 +377,9 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 	 * @param a Expression to check if this is the same as.
 	 * @return If this is the same as a, true, else false.
 	 */
-	public boolean equals(Object a)
+	@Override public boolean equals(Object a)
 	{
+		try{
 		Expression b=(Expression)a;
 		if(terms.size()==b.terms.size())
 			for(int i=0;i<terms.size();i++)
@@ -363,6 +390,15 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 		else
 			return false;
 		return isEquation==b.isEquation;
+		}catch(ClassCastException e)
+		{
+			return false;
+		}
+	}
+	
+	@Override public int hashCode()
+	{
+		return terms.hashCode()<<1|(isEquation?1:0);
 	}
 
 	/**
@@ -375,37 +411,107 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 		return terms.size()==1&&terms.get(0).isConstant();
 	}
 
-	public int compareTo(Expression o)
+	@Override public int compareTo(Expression o)
 	{
 		return toString().compareTo(o.toString());
 	}
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#clone()
 	 */
-	public Expression clone()
+	@Override public Expression clone()
 	{
-		Expression a=new Expression(terms,isEquation);
-		for(Term current:a.terms)
-			current=current.clone();
+		Expression a=new Expression();
+		a.isEquation=isEquation;
+		for(Term current:terms)
+			a.terms.add(current.clone());
 		return a;
 	}
-	
+
 	public ArrayList<Expression> factor()
 	{
 		ArrayList<Expression> ans=new ArrayList<Expression>();
-		Term denom=new Term(Constant.ONE);
+		Term fact=Term.gcd(terms);
 		for(Term current:terms)
 		{
-			for(Map.Entry<Character,Constant> on:current.vars.entrySet())
-				if(on.getValue().compareTo(new Constant())<0&&!(denom.vars.containsKey(on.getKey())&&denom.vars.get(on.getKey()).compareTo(on.getValue())>=0))
-					;
+			for(Entry<Character,Constant> on:current.vars.entrySet())
+				if(on.getValue().compareTo(new Constant())<0&&!(fact.vars.containsKey(on.getKey())&&fact.vars.get(on.getKey()).compareTo(on.getValue())>=0))
+					fact.addExponent(on.getKey(),on.getValue());
+			for(Entry<Expression,Expression> on:current.undistr.entrySet())
+				if(on.getValue().isConstant())
+				{
+					Constant ons=on.getValue().terms.get(0).coeff;
+					if(!fact.undistr.containsKey(on.getKey())||!fact.undistr.get(on.getKey()).isConstant())
+						fact.addExponent(on.getKey(),on.getValue());
+					else
+						if(fact.undistr.get(on.getKey()).terms.get(0).coeff.compareTo(ons)<0)
+							fact.undistr.put(on.getKey(),on.getValue());
+				}
 		}
-		Term fact=Term.gcd(terms);
-		ans.add(new Expression(fact));
+		if(!fact.equals(new Term(new Constant(1))))
+		{
+			Expression add=new Expression(fact);
+			ans.add(add);
+		}
 		Expression remaining=new Expression(Expression.raiseAndDistribute(new Expression(fact),clone(),Expression.NEGATE));
-		
+		final Constant two=new Constant(2);
+		if(remaining.getDegree().equals(two)&&getVars().size()==1)
+		{
+			char factBy='\0';
+			Iterator<Term> term=terms.iterator();
+			while(term.hasNext()&&factBy=='\0')
+			{
+				Term current=term.next();
+				Iterator<Entry<Character,Constant>> it=current.vars.entrySet().iterator();
+				while(it.hasNext()&&factBy=='\0')
+				{
+					Entry<Character,Constant> var=it.next();
+					if(var.getValue().equals(two))
+						factBy=var.getKey();
+				}
+			}
+			Expression a=new Expression(),b=new Expression(),c=new Expression();
+			for(Term current:remaining.terms)
+			{
+				Term noVar=current.clone();
+				Constant pow=noVar.vars.remove(factBy);
+				if(pow==null)
+					c.terms.add(noVar);
+				else
+					if(pow.equals(Constant.ONE))
+						b.terms.add(noVar);
+					else
+						if(pow.equals(two))
+							a.terms.add(noVar);
+			}
+			final Expression expTwo=new Expression(new Term(two));
+			Expression bfourac=new Expression(raise(b,expTwo));
+			ArrayList<Term> fourac=distribute(new Expression(new Term(new Constant(-4))),new Expression(distribute(a,c)));
+			bfourac.terms.addAll(fourac);
+			bfourac.simplifyTerms();
+			Term discrim=new Term(Constant.ONE);
+			discrim.addExponent(bfourac,new Expression(new Term(new Constant(1,2))));
+			discrim.simplifyTerm();
+			Expression plus=new Expression(),minus;
+			plus.terms.addAll(b.terms);
+			minus=plus.clone();
+			plus.terms.add(discrim);
+			minus.terms.add(Term.multiply(Term.NEGATE,discrim));
+			plus.simplifyTerms();
+			minus.simplifyTerms();
+			plus=new Expression(raiseAndDistribute(distribute(expTwo,a),plus.terms,Expression.NEGATE.terms));
+			minus=new Expression(raiseAndDistribute(distribute(expTwo,a),minus.terms,Expression.NEGATE.terms));
+			plus.terms.add(new Term(factBy));
+			minus.terms.add(new Term(factBy));
+			plus.simplifyTerms();
+			minus.simplifyTerms();
+			ans.add(plus);
+			ans.add(minus);
+			return ans;
+		}
+		ans.add(remaining);
 		return ans;
 	}
 
@@ -415,22 +521,80 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 	 * @return An array of solutions, one for each variable.
 	 * @throws NotEquation If the Expression is not an Equation.
 	 */
-	public ArrayList<Solution> solve() throws NotEquation
+	public HashSet<Solution> solve() throws NotEquation
 	{
 		if(!isEquation)
 			throw new NotEquation();
-		ArrayList<Solution> solutions=new ArrayList<Solution>(2);
-		HashSet<Character> vars=getVars();
-		vars.remove('\u05D0');
-		for(char current:vars)
+		HashSet<Solution> solutions=new HashSet<Solution>();
+		ArrayList<Expression> facts=factor();
+		Expression first=new Expression();
+		for(Expression current:facts)
 		{
-			solutions.add(solveFor(current));
+			HashSet<Character> vars=getVars();
+			vars.remove('\u05D0');
+			for(char cur:vars)
+				try
+				{
+					Expression s=current.solveFact(cur);
+					boolean found=false;
+					for(Solution find:solutions)
+						if(find.letter==cur)
+						{
+							found=true;
+							((Object)first).equals((Object)s);
+							find.value.add(s);
+						}
+					if(!found)
+					{
+						first=s;
+						solutions.add(new Solution(cur,s));
+					}
+				}catch(NotAbleToSolve e)
+				{}
 		}
 		return solutions;
 	}
-	
-	public Solution solveFor(char iso) throws NotEquation
+
+	private Expression solveFact(char iso) throws NotEquation,NotAbleToSolve
 	{
+		Constant firstPow=null,secondPow=null;
+		boolean firstOther=false,secondOther=false;
+		boolean inUndistr=false;
+		for(Term current:terms)
+		{
+			Constant pow=current.vars.get(iso);
+			boolean other=pow!=null&&(current.vars.size()>1||current.undistr.size()>0);
+			if(pow==null)
+				pow=new Constant();
+			if(firstPow==null||pow.equals(firstPow))
+			{
+				firstPow=pow;
+				firstOther=other||firstOther;
+			}else if(secondPow==null||pow.equals(secondPow))
+			{
+				secondPow=pow;
+				secondOther=other||secondOther;
+			}else 
+				throw new NotAbleToSolve("The equation is to the second degree or higher.");
+			for(Entry<Expression,Expression> exp:current.undistr.entrySet())
+			{
+				if(exp.getKey().getVars().contains(iso))
+				{
+					if(!pow.equals(new Constant()))
+						throw new NotAbleToSolve(iso+"is multiplied by itself raised to variable or the root of the sum of itself and another expression");
+					inUndistr=true;
+				}
+				if(exp.getValue().getVars().contains(iso))
+					throw new NotAbleToSolve(iso+"is in an exponent. Logarithms will be added in future versions.");
+			}
+		}
+		if(firstPow!=null&&secondPow!=null)
+		{
+			if(!firstPow.equals(new Constant())&&!secondPow.equals(new Constant()))
+				throw new NotAbleToSolve("This equation requires factoring");
+			if((!firstPow.equals(new Constant())||!secondPow.equals(new Constant()))&&inUndistr)
+				throw new NotAbleToSolve("This equation has "+iso+" added to the sum it and something else, raised to something.");
+		}
 		ArrayList<Term> hasVar=new ArrayList<Term>(terms.size()/3+1);
 		ArrayList<Term> noVar=new ArrayList<Term>(2*terms.size()/3+1);
 		Constant root=Constant.ONE;
@@ -444,15 +608,26 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 		for(Term now:hasVar)
 		{
 			Term a=now.clone();
-			root=a.vars.remove(iso);
+			Constant r=a.vars.remove(iso);
+			if(!r.equals(Constant.ONE))
+				root=r;
 			a.coeff.multiply(Constant.NEGATE);
 			divide.add(a);
 		}
 		root.invert();
 		if(root.equals(Constant.ONE))
-			return new Solution(iso,new Expression(raiseAndDistribute(new Expression(divide),new Expression(noVar),NEGATE)));
+			return new Expression(raiseAndDistribute(new Expression(divide),new Expression(noVar),NEGATE));
 		else
-			return new Solution(iso,new Expression(raise(new Expression(raiseAndDistribute(new Expression(divide),new Expression(noVar),NEGATE)),new Expression(new Term(root)))));
+			return new Expression(raise(new Expression(raiseAndDistribute(new Expression(divide),new Expression(noVar),NEGATE)),new Expression(new Term(root))));
+	}
+
+	public Solution solveFor(char iso) throws NotEquation, NotAbleToSolve
+	{
+		Solution s=new Solution(iso);
+		ArrayList<Expression> factors=factor();
+		for(Expression current:factors)
+			s.value.add(current.solveFact(iso));
+		return s;
 	}
 
 	/**
@@ -467,6 +642,21 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 		for(Term current:terms)
 			vars.addAll(current.getVars());
 		return vars;
+	}
+
+	/**
+	 * Gets the degree of the equation, or the highest power of a variable.
+	 * 
+	 * @return the degree of the equation.
+	 */
+	public Constant getDegree()
+	{
+		Constant degree=new Constant();
+		for(Term current:terms)
+			for(Constant pow:current.vars.values())
+				if(pow.compareTo(degree)>0)
+					degree=pow;
+		return degree;
 	}
 
 	/**
@@ -487,10 +677,13 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#toString()
 	 */
-	public String toString()
+	@Override public String toString()
 	{
+		if(terms.isEmpty())
+			return "0";
 		String output="";
 		for(Term current:terms)
 			output=output+current.toString();
@@ -508,12 +701,12 @@ public class Expression implements Comparable<Expression>,BetterCloneable<Expres
 	private static final class SortByChar implements Comparator<Term>
 	{
 		char sortBy;
-		
+
 		public SortByChar(char sort)
 		{
 			sortBy=sort;
 		}
-		
+
 		@Override public int compare(Term o1,Term o2)
 		{
 			Constant c1=o1.vars.get(sortBy);

@@ -14,19 +14,19 @@ import java.util.TreeMap;
  * @author Luke Senseney
  * 
  */
-public class Constant extends Number implements Comparable<Constant>,BetterCloneable<Constant>
+public class Constant extends Number implements Comparable<Number>
 {
 	private static final long serialVersionUID=01L;;
 	/**
 	 * The numerator of this number.
 	 */
-	public int numerator=0;
+	public long numerator=0;
 	/**
 	 * The denominator of the number.
 	 */
-	public int denominator=1;
+	public long denominator=1;
 	/**
-	 * A array of Roots in this Constant.
+	 * A array of roots in this Constant.
 	 */
 	public TreeMap<Integer,Constant> roots=new TreeMap<Integer,Constant>();
 	/**
@@ -39,11 +39,11 @@ public class Constant extends Number implements Comparable<Constant>,BetterClone
 	public static final Constant NEGATE=new Constant(-1);
 
 	/**
-	 * Creates a new Constant from an int.
+	 * Creates a new Constant from an long.
 	 * 
-	 * @param newConstant The int to make a Constant.
+	 * @param newConstant The long to make a Constant.
 	 */
-	public Constant(int newConstant)
+	public Constant(long newConstant)
 	{
 		numerator=newConstant;
 	}
@@ -54,7 +54,7 @@ public class Constant extends Number implements Comparable<Constant>,BetterClone
 	 * @param num The new numerator.
 	 * @param denom The new denominator.
 	 */
-	public Constant(int num,int denom)
+	public Constant(long num,long denom)
 	{
 		numerator=num;
 		denominator=denom;
@@ -68,19 +68,16 @@ public class Constant extends Number implements Comparable<Constant>,BetterClone
 	 */
 	public Constant(double newConstant)
 	{
-		String findDecimal=General.removeDecimal(newConstant);
-		if(findDecimal.indexOf('.')==-1)
-			numerator=(int)newConstant;
-		else
+		while(newConstant%1!=0)
 		{
-			int multiply=(int)Math.pow(10,findDecimal.length()-findDecimal.indexOf('.')-1);
-			numerator=(int)(newConstant*multiply);
-			denominator=multiply;
+			newConstant*=10;
+			denominator*=10;
 		}
+		numerator=(long)newConstant;
 		simplify();
 	}
 
-	public Constant(int num,int denom,TreeMap<Integer,Constant> newRoots)
+	public Constant(long num,long denom,TreeMap<Integer,Constant> newRoots)
 	{
 		numerator=num;
 		denominator=denom;
@@ -97,22 +94,29 @@ public class Constant extends Number implements Comparable<Constant>,BetterClone
 
 	@Override public double doubleValue()
 	{
-		return numerator/(double)denominator;
+		double sum=1;
+		for(Entry<Integer,Constant> root:roots.entrySet())
+			sum*=Math.pow(root.getValue().doubleValue(),1./root.getKey());
+		return sum*numerator/(double)denominator;
 	}
 
 	@Override public float floatValue()
 	{
-		return new Double(doubleValue()).floatValue();
+		return (float)doubleValue();
 	}
 
 	@Override public int intValue()
 	{
-		return numerator/denominator;
+		return (int)doubleValue();
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Number#longValue()
+	 */
 	@Override public long longValue()
 	{
-		return numerator/denominator;
+		return (long)doubleValue();
 	}
 
 	/**
@@ -155,8 +159,8 @@ public class Constant extends Number implements Comparable<Constant>,BetterClone
 			Constant extract=extract(current.getKey(),current.getValue());
 			if(!extract.equals(ONE))
 				current.getValue().divide(extract);
-			extract.numerator=(int)Math.pow(extract.numerator,1./current.getKey());
-			extract.denominator=(int)Math.pow(extract.denominator,1./current.getKey());
+			extract.numerator=(long)Math.pow(extract.numerator,1./current.getKey());
+			extract.denominator=(long)Math.pow(extract.denominator,1./current.getKey());
 			current.getValue().numerator=current.getValue().numerator*current.getValue().denominator;
 			denominator=denominator*current.getValue().denominator;
 			current.getValue().denominator=1;
@@ -176,8 +180,8 @@ public class Constant extends Number implements Comparable<Constant>,BetterClone
 			denominator=-denominator;
 		}
 		double divide=General.gcd(numerator,denominator);
-		numerator=(int)(numerator/divide);
-		denominator=(int)(denominator/divide);
+		numerator=(long)(numerator/divide);
+		denominator=(long)(denominator/divide);
 	}
 
 	/**
@@ -211,9 +215,9 @@ public class Constant extends Number implements Comparable<Constant>,BetterClone
 	/**
 	 * Multiplies this by a.
 	 * 
-	 * @param a The int to multiply this by.
+	 * @param a The long to multiply this by.
 	 */
-	public void multiply(int a)
+	public void multiply(long a)
 	{
 		numerator=numerator*a;
 		simplify();
@@ -235,9 +239,9 @@ public class Constant extends Number implements Comparable<Constant>,BetterClone
 	/**
 	 * Divides this by a.
 	 * 
-	 * @param a The int to divide this by.
+	 * @param a The long to divide this by.
 	 */
-	public void divide(int a)
+	public void divide(long a)
 	{
 		denominator=denominator*a;
 		simplify();
@@ -253,7 +257,7 @@ public class Constant extends Number implements Comparable<Constant>,BetterClone
 	{
 		if(!roots.equals(a.roots))
 			throw new DifferentRoots("The irrational part of the Constants are different");
-		int lcm=General.lcm(denominator,a.denominator);
+		long lcm=General.lcm(denominator,a.denominator);
 		numerator=numerator*lcm/denominator+a.numerator*lcm/a.denominator;
 		denominator=lcm;
 		a.denominator=lcm;
@@ -270,7 +274,7 @@ public class Constant extends Number implements Comparable<Constant>,BetterClone
 	{
 		if(!roots.equals(a.roots))
 			throw new DifferentRoots("The irrational part of the Constants are different");
-		int lcm=General.lcm(denominator,a.denominator);
+		long lcm=General.lcm(denominator,a.denominator);
 		numerator=numerator*lcm/denominator-a.numerator*lcm/a.denominator;
 		denominator=lcm;
 		a.denominator=lcm;
@@ -278,11 +282,11 @@ public class Constant extends Number implements Comparable<Constant>,BetterClone
 	}
 
 	/**
-	 * Checks to see if this is an integer.
+	 * Checks to see if this is rational.
 	 * 
-	 * @return If this is an integer, true, else false.
+	 * @return If this is rational, true, else false.
 	 */
-	public boolean isInt()
+	public boolean isRat()
 	{
 		return roots.size()==0;
 	}
@@ -298,16 +302,16 @@ public class Constant extends Number implements Comparable<Constant>,BetterClone
 		if(power.numerator<0)
 		{
 			invert();
-			numerator=(int)Math.pow(numerator,-power.numerator);
-			denominator=(int)Math.pow(denominator,-power.numerator);
+			numerator=(long)Math.pow(numerator,-power.numerator);
+			denominator=(long)Math.pow(denominator,-power.numerator);
 		}else
 		{
-			numerator=(int)Math.pow(numerator,power.numerator);
-			denominator=(int)Math.pow(denominator,power.numerator);
+			numerator=(long)Math.pow(numerator,power.numerator);
+			denominator=(long)Math.pow(denominator,power.numerator);
 		}
 		if(power.denominator>1)
 		{
-			roots=new TreeMap<Integer,Constant>(Collections.singletonMap(power.denominator,this.clone()));
+			roots=new TreeMap<Integer,Constant>(Collections.singletonMap((int)power.denominator,this.clone()));
 			numerator=1;
 			denominator=1;
 		}
@@ -319,7 +323,7 @@ public class Constant extends Number implements Comparable<Constant>,BetterClone
 	 */
 	public void invert()
 	{
-		int temp=numerator;
+		long temp=numerator;
 		numerator=denominator;
 		denominator=temp;
 		for(Constant current:roots.values())
@@ -363,15 +367,23 @@ public class Constant extends Number implements Comparable<Constant>,BetterClone
 	 * @param a Constant to check if this is equal to.
 	 * @return If the Constants equal, true, else false.
 	 */
-	public boolean equals(Object o)
+	@Override public boolean equals(Object o)
 	{
-		Constant a=(Constant)o;
-		if(!roots.equals(a.roots))
+		try{
+			Number a=(Number)o;
+			return a.doubleValue()==doubleValue();
+		}catch(ClassCastException e)
+		{
 			return false;
-		return numerator==a.numerator&&denominator==a.denominator;
+		}
 	}
-
-	public int compareTo(Constant o)
+	
+	@Override public int hashCode()
+	{
+		return (int)doubleValue()*(1<<16);
+	}
+	
+	@Override public int compareTo(Number o)
 	{
 		if(o==null)
 			return 1;
@@ -381,8 +393,12 @@ public class Constant extends Number implements Comparable<Constant>,BetterClone
 		else
 			return diff<0?-1:0;
 	}
-
-	public String toString()
+	
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override public String toString()
 	{
 		String r="";
 		for(Entry<Integer,Constant> current:roots.entrySet())
@@ -397,12 +413,13 @@ public class Constant extends Number implements Comparable<Constant>,BetterClone
 				r+=(char)(8304+current.getKey())+"\u221a";
 			r+='('+current.getValue().toString()+')';
 		}
-		if(numerator==1&&denominator==1&&r.length()!=0)
-			return r;
-		else if(denominator==1)
-			return String.valueOf(numerator)+r;
-		else
-			return String.valueOf(numerator)+r+'/'+String.valueOf(denominator);
+		if(denominator!=1)
+			r+="/"+denominator;
+		if(roots.size()==0||(numerator!=1&&numerator!=-1))
+			r=numerator+r;
+		else if(numerator==-1)
+			r="-"+r;
+		return r;
 	}
 
 	/**

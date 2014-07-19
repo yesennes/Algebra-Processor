@@ -1,7 +1,7 @@
 package lang;
 
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 
 /**
  * Class that represents all solutions for a variable.
@@ -18,7 +18,8 @@ public class Solution
 	/**
 	 * Expressions which are equal the the variable.
 	 */
-	public ArrayList<Expression> value;
+	public HashSet<Expression> value;
+	public boolean allPossible=true;
 
 	/**
 	 * Creates a new solution.
@@ -29,14 +30,30 @@ public class Solution
 	public Solution(char newLetter,Expression newValue)
 	{
 		letter=newLetter;
-		value=new ArrayList<Expression>(Collections.singleton(newValue));
+		value=new HashSet<Expression>(Collections.singleton(newValue));
+	}
+
+	/**
+	 * @param iso
+	 * @param arrayList
+	 */
+	public Solution(char newLetter,HashSet<Expression> newValue)
+	{
+		letter=newLetter;
+		value=newValue;
+	}
+	
+	public Solution(char newLetter)
+	{
+		letter=newLetter;
+		value=new HashSet<Expression>();
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */
-	public String toString()
+	@Override public String toString()
 	{
 		String rtn=letter+"=";
 		for(Expression current:value)
