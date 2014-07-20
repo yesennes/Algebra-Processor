@@ -186,8 +186,7 @@ public class Expression implements Comparable<Expression>
 	 */
 	public Expression(Term...newTerms)
 	{
-		terms=new ArrayList<Term>(Arrays.asList(newTerms));
-		simplifyTerms();
+		this(Arrays.asList(newTerms));
 	}
 
 	/**
@@ -209,8 +208,7 @@ public class Expression implements Comparable<Expression>
 	 */
 	public Expression(Collection<Term> newTerms,boolean equation)
 	{
-		terms=new ArrayList<Term>(newTerms);
-		simplifyTerms();
+		this(newTerms);
 		isEquation=equation;
 	}
 
@@ -261,7 +259,7 @@ public class Expression implements Comparable<Expression>
 			// If there is something to this term other than undistr, puts that in an undistr raised to power
 			if(exp.vars.size()!=0&&!exp.coeff.equals(Constant.ONE))
 				exp.undistr.put(new Expression(new Term(exp.coeff,expression.terms.get(0).vars)),power);
-			//Essentially removes every thing in this term except the undistr, which has already been raised to power.
+			// Essentially removes every thing in this term except the undistr, which has already been raised to power.
 			return new Expression(new Term(Constant.ONE,new TreeMap<Character,Constant>(),exp.undistr)).terms;
 		}
 		// expression^pow could not be simplified in any manner. This just puts into the undistr of a new term.
@@ -281,34 +279,6 @@ public class Expression implements Comparable<Expression>
 	public static ArrayList<Term> raise(Collection<Term> expression,Collection<Term> power)
 	{
 		return raise(new Expression(expression),new Expression(power));
-	}
-
-	/**
-	 * Raises an Expression to another and then multiplies by another.
-	 * 
-	 * @param expression the base
-	 * @param multiplier the expression the be multiplied.
-	 * @param power the exponent
-	 * @return (expression<sup>power</sup>)*multiplier
-	 */
-	public static ArrayList<Term> raiseAndDistribute(Expression expression,Expression multiplier,Expression power)
-	{
-		return distribute(new Expression(raise(expression,power)),multiplier);
-	}
-
-	/**
-	 * Raises an expression to another and then multiplies by another. It is the equivalent of
-	 * 
-	 * <code>raiseAndDistribute(new Expression(expression),new Expression(multiplier),new Expression(power));<code>
-	 * 
-	 * @param expression the base
-	 * @param multiplier the expression the be multiplied.
-	 * @param power the exponent
-	 * @return (expression<sup>power</sup>)*multiplier
-	 */
-	public static ArrayList<Term> raiseAndDistribute(Collection<Term> expression,Collection<Term> multiplier,Collection<Term> power)
-	{
-		return raiseAndDistribute(new Expression(expression),new Expression(multiplier),new Expression(power));
 	}
 
 	/**
@@ -343,11 +313,72 @@ public class Expression implements Comparable<Expression>
 	}
 
 	/**
+	 * Raises an Expression to another and then multiplies by another.
+	 * 
+	 * @param expression the base
+	 * @param multiplier the expression the be multiplied.
+	 * @param power the exponent
+	 * @return (expression<sup>power</sup>)*multiplier
+	 */
+	public static ArrayList<Term> raiseAndDistribute(Expression expression,Expression multiplier,Expression power)
+	{
+		return distribute(new Expression(raise(expression,power)),multiplier);
+	}
+
+	/**
+	 * Raises an expression to another and then multiplies by another. It is the equivalent of
+	 * 
+	 * <code>raiseAndDistribute(new Expression(expression),new Expression(multiplier),new Expression(power));<code>
+	 * 
+	 * @param expression the base
+	 * @param multiplier the expression the be multiplied.
+	 * @param power the exponent
+	 * @return (expression<sup>power</sup>)*multiplier
+	 */
+	public static ArrayList<Term> raiseAndDistribute(Collection<Term> expression,Collection<Term> multiplier,Collection<Term> power)
+	{
+		return raiseAndDistribute(new Expression(expression),new Expression(multiplier),new Expression(power));
+	}
+
+	/**
+	 * Gets the greatest common denominator of the gcd of the terms in each
+	 * 
+	 * @param a One Expression to find the gcd of.
+	 * @param b The other Expression to find the gcd of.
+	 * @return The greatest common denominator of the gcd of the terms in each
+	 */
+	public static Expression gcd(Expression a,Expression b)
+	{
+		//Factors each Expression
+		ArrayList<Expression> faca=a.factor();
+		ArrayList<Expression> facb=b.factor();
+		Expression gcd=new Expression();
+		//If both have a single Term factor, adds the gcd of that to gcd and removes those factors.
+		if(faca.get(0).terms.size()==1&&facb.get(0).terms.size()==0)
+		{
+			gcd.terms.add(Term.gcd(faca.get(0).terms.get(0),facb.get(0).terms.get(0)));
+			faca.remove(0);
+			facb.remove(0);
+		}
+		//Finds all identical factors multiplies them into gcd
+		for(Expression exp:faca)
+		{
+			int i=facb.indexOf(exp);
+			if(i>-1)
+			{
+				gcd=new Expression(distribute(gcd,exp));
+				facb.remove(i);
+			}
+		}
+		return gcd;
+	}
+
+	/**
 	 * Combines like Terms, removes 0 terms and distributes what it can.
 	 */
 	public void simplifyTerms()
 	{
-		// Finds all undistr in terms that can be distributed, removes them from the Term, and distributes them 
+		// Finds all undistr in terms that can be distributed, removes them from the Term, and distributes them
 		// and adds them to this.
 		for(int i=0;i<terms.size();i++)
 		{
@@ -362,7 +393,7 @@ public class Expression implements Comparable<Expression>
 				}
 			}
 		}
-		//Combines like terms by checking each term against each after them.
+		// Combines like terms by checking each term against each after them.
 		for(int i=0;i<terms.size();i++)
 			for(int j=terms.size()-1;j>i;j--)
 				try
@@ -374,69 +405,14 @@ public class Expression implements Comparable<Expression>
 					}
 				}catch(DifferentRoots e)
 				{}
-		//Removes all terms with the coefficient of 0.
-		terms.removeIf(t->t.coeff.equals(new Constant()));
+		// Removes all terms with the coefficient of 0.
+		terms.removeIf(t -> t.coeff.equals(new Constant()));
 		Collections.sort(terms);
 	}
 
 	/**
-	 * Checks if this is the same expression or equation as a.
-	 * 
-	 * @param a Expression to check if this is the same as.
-	 * @return If this is the same as a, true, else false.
-	 */
-	@Override public boolean equals(Object a)
-	{
-		try
-		{
-			Expression b=(Expression)a;
-			return terms.equals(b.terms)&&isEquation==b.isEquation;
-		}catch(ClassCastException e)
-		{
-			return false;
-		}
-	}
-
-	@Override public int hashCode()
-	{
-		return terms.hashCode()<<1|(isEquation?1:0);
-	}
-
-	/**
-	 * Checks to see if this Expression is a single Term that is a constant.
-	 * 
-	 * @return If this is a constant true, else false.
-	 */
-	public boolean isConstant()
-	{
-		return terms.size()==1&&terms.get(0).isConstant();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Comparable#compareTo(java.lang.Object)
-	 */
-	@Override public int compareTo(Expression o)
-	{
-		return toString().compareTo(o.toString());
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#clone()
-	 */
-	@Override public Expression clone()
-	{
-		@SuppressWarnings("unchecked") Expression a=new Expression((Collection<Term>)terms.clone(),isEquation);
-		a.terms.replaceAll(Term::clone);
-		return a;
-	}
-
-	/**
 	 * Factors out the gcd, and if the remaining expression is a quadratic, factors that with the quadratic formula.
-	 * 
+	 * If the expression has a factor which is a single Term, it will be first in the ArrayList
 	 * @return The factors of this. None will be equations.
 	 */
 	public ArrayList<Expression> factor()
@@ -520,7 +496,8 @@ public class Expression implements Comparable<Expression>
 			ans.add(minus);
 			return ans;
 		}
-		ans.add(remaining);
+		if(!remaining.equals(Expression.ONE)&&ans.size()>0)
+			ans.add(remaining);
 		return ans;
 	}
 
@@ -562,6 +539,30 @@ public class Expression implements Comparable<Expression>
 				{}
 		}
 		return solutions;
+	}
+
+	/**
+	 * Solves the equation for the specified variable
+	 * 
+	 * @param iso The variable to solve for.
+	 * @return The solution for iso
+	 * @throws NotEquation If this isn't an equation.
+	 */
+	public Solution solveFor(char iso) throws NotEquation
+	{
+		if(!isEquation)
+			throw new NotEquation();
+		Solution s=new Solution(iso);
+		ArrayList<Expression> factors=factor();
+		for(Expression current:factors)
+			try
+			{
+				s.value.add(current.solveFact(iso));
+			}catch(NotAbleToSolve e)
+			{
+				s.allPossible=false;
+			}
+		return s;
 	}
 
 	private Expression solveFact(char iso) throws NotEquation,NotAbleToSolve
@@ -632,27 +633,13 @@ public class Expression implements Comparable<Expression>
 	}
 
 	/**
-	 * Solves the equation for the specified variable
+	 * Checks to see if this Expression is a single Term that is a constant.
 	 * 
-	 * @param iso The variable to solve for.
-	 * @return The solution for iso
-	 * @throws NotEquation If this isn't an equation.
+	 * @return If this is a constant true, else false.
 	 */
-	public Solution solveFor(char iso) throws NotEquation
+	public boolean isConstant()
 	{
-		if(!isEquation)
-			throw new NotEquation();
-		Solution s=new Solution(iso);
-		ArrayList<Expression> factors=factor();
-		for(Expression current:factors)
-			try
-			{
-				s.value.add(current.solveFact(iso));
-			}catch(NotAbleToSolve e)
-			{
-				s.allPossible=false;
-			}
-		return s;
+		return terms.size()==1&&terms.get(0).isConstant();
 	}
 
 	/**
@@ -683,20 +670,37 @@ public class Expression implements Comparable<Expression>
 		return degree;
 	}
 
-	/**
-	 * Gets the greatest common denominator of the gcd of the terms in each
+	/*
+	 * (non-Javadoc)
 	 * 
-	 * @param a One Expression to find the gcd of.
-	 * @param b The other Expression to find the gcd of.
-	 * @return The greatest common denominator of the gcd of the terms in each
+	 * @see java.lang.Comparable#compareTo(java.lang.Object)
 	 */
-	public static Expression gcd(Expression a,Expression b)
+	@Override public int compareTo(Expression o)
 	{
-		Term gcda=Term.gcd(a.terms);
-		Term gcdb=Term.gcd(b.terms);
-		Expression newa=new Expression(raiseAndDistribute(new Expression(gcda),a,NEGATE));
-		Expression newb=new Expression(raiseAndDistribute(new Expression(gcdb),b,NEGATE));
-		return newa.equals(newb)?new Expression(distribute(newa,new Expression(Term.gcd(gcda,gcdb)))):new Expression(Term.gcd(gcda,gcdb));
+		return toString().compareTo(o.toString());
+	}
+
+	/**
+	 * Checks if this is the same expression or equation as a.
+	 * 
+	 * @param a Expression to check if this is the same as.
+	 * @return If this is the same as a, true, else false.
+	 */
+	@Override public boolean equals(Object a)
+	{
+		try
+		{
+			Expression b=(Expression)a;
+			return terms.equals(b.terms)&&isEquation==b.isEquation;
+		}catch(ClassCastException e)
+		{
+			return false;
+		}
+	}
+
+	@Override public int hashCode()
+	{
+		return terms.hashCode()<<1|(isEquation?1:0);
 	}
 
 	/*
@@ -716,6 +720,18 @@ public class Expression implements Comparable<Expression>
 		if(isEquation)
 			output=output+"=0";
 		return output;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#clone()
+	 */
+	@Override public Expression clone()
+	{
+		@SuppressWarnings("unchecked") Expression a=new Expression((Collection<Term>)terms.clone(),isEquation);
+		a.terms.replaceAll(Term::clone);
+		return a;
 	}
 
 	/**
