@@ -11,7 +11,7 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 /**
- * Class that represents a mathematical expression, or a Equation if isEquation is true.
+ * Class that represents a mathematical expression, or a equation if isEquation is true.
  * 
  * @author Luke Senseney
  * 
@@ -19,11 +19,11 @@ import java.util.TreeMap;
 public class Expression implements Comparable<Expression>
 {
 	/**
-	 * Term array that is added to make this Expression
+	 * Term array that the sum of is this expression, or are equal to 0 if isEquation.
 	 */
 	public ArrayList<Term> terms;
 	/**
-	 * If true, it is treated like a Equation with the array of Terms set equal to 0.
+	 * If true, it is treated like a equation with the array of Terms set equal to 0. Default is false.
 	 */
 	public boolean isEquation=false;
 	/**
@@ -40,9 +40,8 @@ public class Expression implements Comparable<Expression>
 	public static final Expression NEGATE=new Expression(Term.NEGATE);
 
 	/**
-	 * Creates a new Expression from a string. If there is a "=" in the string isEquation is true.
-	 * Cannot handle equations with more than one "=" i.e. a=b=c. Garbage in, Garbage out, if the
-	 * String is not a correctly formated expression or equation, will attempt to read.
+	 * Creates a new Expression from a string. If there is a "=" in the string isEquation is true. Cannot handle equations with more than one "=" i.e. a=b=c. Garbage in, Garbage out, if the String is not a correctly formated expression or equation,
+	 * will attempt to read or throw exception.
 	 * 
 	 * @param newEquation The string to make a equation from.
 	 */
@@ -160,8 +159,7 @@ public class Expression implements Comparable<Expression>
 			if(!leftSide)
 				toAdd.coeff.numerator*=-1;
 			terms.add(toAdd);
-		}
-		else
+		}else
 		{
 			ArrayList<Term> toAdd;
 			if(power.equals(""))
@@ -206,7 +204,7 @@ public class Expression implements Comparable<Expression>
 	/**
 	 * Creates a new Expression from a array of Terms, is a equation if equation is true.
 	 * 
-	 * @param terms2 Terms to make a equation from.
+	 * @param newTerms Terms to make a equation from.
 	 * @param equation Sets isEquation to this.
 	 */
 	public Expression(Collection<Term> newTerms,boolean equation)
@@ -217,79 +215,81 @@ public class Expression implements Comparable<Expression>
 	}
 
 	/**
-	 * Raises expression to power.
+	 * Raises an Expression to another Expression.
 	 * 
 	 * @param expression the base
 	 * @param power the exponent
-	 * @return expression^power
+	 * @return expression<sup>power</sup>
 	 */
 	public static ArrayList<Term> raise(Expression expression,Expression power)
 	{
 		if(power.isConstant())
+		{
 			if(expression.terms.size()==1)
+				// If power is constant and expression is a single Term, use
+				// Term.raise(Term,Constant)
+				return new Expression(Term.raise(expression.terms.get(0),power.terms.get(0).coeff)).terms;
+			Constant pow=power.terms.get(0).coeff;
+			if(pow.equals(new Constant()))
+				// If power is 0 return 1
+				return ONE.terms;
+			// Keep a copy of the original, because expression will be set to another object
+			Expression original=expression;
+			// Multiply expression by itself one times 1 less than the absolute value of the numerator of pow.
+			for(long i=Math.abs(pow.numerator);i>1;i--)
+				expression=new Expression(distribute(expression,original));
+			// If pow is negative or it has a denominator, this cannot be distributed, so it needs to be in the undistr of a Term. This packages
+			// it into a term
+			if(pow.numerator<0||pow.denominator>1)
 			{
-				expression=expression.clone();
-				expression.terms.get(0).coeff.raise(power.terms.get(0).coeff);
-				for(Constant current:expression.terms.get(0).vars.values())
-					current.multiply(power.terms.get(0).coeff);
-				for(Entry<Expression,Expression> current:expression.terms.get(0).undistr.entrySet())
-					current.setValue(new Expression(distribute(current.getValue(),power)));
-			}else
-			{
-				Expression original=expression;
-				if(power.terms.get(0).coeff.numerator==0)
-					expression=ONE;
-				for(int i=1;i<Math.abs(power.terms.get(0).coeff.numerator);i++)
-					expression=new Expression(distribute(expression,original));
-				if(power.terms.get(0).coeff.numerator<0||power.terms.get(0).coeff.denominator>1)
-				{
-					TreeMap<Expression,Expression> d=new TreeMap<Expression,Expression>();
-					Constant p=new Constant(power.terms.get(0).coeff.denominator);
-					p.invert();
-					if(power.terms.get(0).coeff.numerator<0)
-						p.multiply(Constant.NEGATE);
-					d.put(expression,new Expression(new Term(p)));
-					expression=new Expression(new Term(Constant.ONE,new TreeMap<Character,Constant>(),d));
-				}
+				TreeMap<Expression,Expression> d=new TreeMap<Expression,Expression>();
+				// sets the numerator of pow to 1 or -1 depending on sign.
+				pow.numerator=pow.numerator<0?-1:1;
+				d.put(expression,new Expression(new Term(pow)));
+				return new Expression(new Term(Constant.ONE,new TreeMap<Character,Constant>(),d)).terms;
 			}
-		else
-			if(expression.terms.size()==1)
+		}
+		if(expression.terms.size()==1)
+		{
+			Term exp=expression.terms.get(0);
+			// Goes from (a^b)^power to a^(b*power)
+			for(Entry<Expression,Expression> current:exp.undistr.entrySet())
 			{
-				for(Entry<Expression,Expression> current:expression.terms.get(0).undistr.entrySet())
-				{
-					current.setValue(new Expression(distribute(current.getValue(),power)));
-					current.getValue().simplifyTerms();
-				}
-				if(expression.terms.get(0).vars.size()!=0&&!expression.terms.get(0).coeff.equals(Constant.ONE))
-					expression.terms.get(0).undistr.put(new Expression(new Term(expression.terms.get(0).coeff,expression.terms.get(0).vars)),power);
-				expression=new Expression(new Term(Constant.ONE,new TreeMap<Character,Constant>(),expression.terms.get(0).undistr));
-			}else
-			{
-				TreeMap<Expression,Expression> d=new TreeMap<Expression,Expression>(Collections.singletonMap(expression,power));
-				expression=new Expression(new Term(Constant.ONE,new TreeMap<Character,Constant>(),d));
+				current.setValue(new Expression(distribute(current.getValue(),power)));
+				current.getValue().simplifyTerms();
 			}
-		return expression.terms;
+			// If there is something to this term other than undistr, puts that in an undistr raised to power
+			if(exp.vars.size()!=0&&!exp.coeff.equals(Constant.ONE))
+				exp.undistr.put(new Expression(new Term(exp.coeff,expression.terms.get(0).vars)),power);
+			//Essentially removes every thing in this term except the undistr, which has already been raised to power.
+			return new Expression(new Term(Constant.ONE,new TreeMap<Character,Constant>(),exp.undistr)).terms;
+		}
+		// expression^pow could not be simplified in any manner. This just puts into the undistr of a new term.
+		TreeMap<Expression,Expression> d=new TreeMap<Expression,Expression>(Collections.singletonMap(expression,power));
+		return new Expression(new Term(Constant.ONE,new TreeMap<Character,Constant>(),d)).terms;
 	}
 
 	/**
-	 * Raises expression to power.
+	 * Raises an expression to another expression. It is the equivalent of
+	 * 
+	 * <code>return raise(new Expression(expression),new Expression(multiplier));</code>
 	 * 
 	 * @param expression the base
 	 * @param power the exponent
-	 * @return expression^power
+	 * @return expression<sup>power</sup>
 	 */
-	public static ArrayList<Term> raise(Collection<Term> expression,Collection<Term> multiplier)
+	public static ArrayList<Term> raise(Collection<Term> expression,Collection<Term> power)
 	{
-		return raise(new Expression(expression),new Expression(multiplier));
+		return raise(new Expression(expression),new Expression(power));
 	}
 
 	/**
-	 * Raises an expression to another and then multiplies by power.
+	 * Raises an Expression to another and then multiplies by another.
 	 * 
 	 * @param expression the base
 	 * @param multiplier the expression the be multiplied.
 	 * @param power the exponent
-	 * @return (expression^power)*multiplier
+	 * @return (expression<sup>power</sup>)*multiplier
 	 */
 	public static ArrayList<Term> raiseAndDistribute(Expression expression,Expression multiplier,Expression power)
 	{
@@ -297,12 +297,14 @@ public class Expression implements Comparable<Expression>
 	}
 
 	/**
-	 * Raises an expression to another and then multiplies by power.
+	 * Raises an expression to another and then multiplies by another. It is the equivalent of
+	 * 
+	 * <code>raiseAndDistribute(new Expression(expression),new Expression(multiplier),new Expression(power));<code>
 	 * 
 	 * @param expression the base
 	 * @param multiplier the expression the be multiplied.
 	 * @param power the exponent
-	 * @return (expression^power)*multiplier
+	 * @return (expression<sup>power</sup>)*multiplier
 	 */
 	public static ArrayList<Term> raiseAndDistribute(Collection<Term> expression,Collection<Term> multiplier,Collection<Term> power)
 	{
@@ -310,7 +312,7 @@ public class Expression implements Comparable<Expression>
 	}
 
 	/**
-	 * Raises an Expression to an Expression and then multiplies it by another.
+	 * Multiplies an Expression by another.
 	 * 
 	 * @param expression The main
 	 * @param multiplier multiplies expression by this.
@@ -319,6 +321,7 @@ public class Expression implements Comparable<Expression>
 	public static ArrayList<Term> distribute(Expression expression,Expression multiplier)
 	{
 		ArrayList<Term> retrn=new ArrayList<Term>(expression.terms.size()*multiplier.terms.size());
+		// Multiplies each term in expression by each term in multiplier.
 		for(Term exp:expression.terms)
 			for(Term multi:multiplier.terms)
 				retrn.add(Term.multiply(exp,multi));
@@ -326,12 +329,13 @@ public class Expression implements Comparable<Expression>
 	}
 
 	/**
-	 * Raises an Expression to an Expression and then multiplies it by another.
+	 * Multiplies an expression by another. It is the equivalent of
+	 * 
+	 * <code>distribute(new Expression(expression),new Expression(multiplier))<code>
 	 * 
 	 * @param expression The main
 	 * @param multiplier multiplies expression by this.
-	 * @param power Raises expression to this.
-	 * @return (expression)^(power)*(multiplier)
+	 * @return (expression)*(multiplier)
 	 */
 	public static ArrayList<Term> distribute(Collection<Term> expression,Collection<Term> multiplier)
 	{
@@ -339,10 +343,12 @@ public class Expression implements Comparable<Expression>
 	}
 
 	/**
-	 * Combines like Terms, and if isEquation, divides by the greatest common divisor of all Terms.
+	 * Combines like Terms, removes 0 terms and distributes what it can.
 	 */
 	public void simplifyTerms()
-	{// Start simplifyTerms
+	{
+		// Finds all undistr in terms that can be distributed, removes them from the Term, and distributes them 
+		// and adds them to this.
 		for(int i=0;i<terms.size();i++)
 		{
 			Iterator<Entry<Expression,Expression>> iter=terms.get(i).undistr.entrySet().iterator();
@@ -356,6 +362,7 @@ public class Expression implements Comparable<Expression>
 				}
 			}
 		}
+		//Combines like terms by checking each term against each after them.
 		for(int i=0;i<terms.size();i++)
 			for(int j=terms.size()-1;j>i;j--)
 				try
@@ -367,6 +374,7 @@ public class Expression implements Comparable<Expression>
 					}
 				}catch(DifferentRoots e)
 				{}
+		//Removes all terms with the coefficient of 0.
 		terms.removeIf(t->t.coeff.equals(new Constant()));
 		Collections.sort(terms);
 	}
@@ -379,23 +387,16 @@ public class Expression implements Comparable<Expression>
 	 */
 	@Override public boolean equals(Object a)
 	{
-		try{
-		Expression b=(Expression)a;
-		if(terms.size()==b.terms.size())
-			for(int i=0;i<terms.size();i++)
-			{
-				if(!terms.get(i).equals(b.terms.get(i)))
-					return false;
-			}
-		else
-			return false;
-		return isEquation==b.isEquation;
+		try
+		{
+			Expression b=(Expression)a;
+			return terms.equals(b.terms)&&isEquation==b.isEquation;
 		}catch(ClassCastException e)
 		{
 			return false;
 		}
 	}
-	
+
 	@Override public int hashCode()
 	{
 		return terms.hashCode()<<1|(isEquation?1:0);
@@ -411,6 +412,11 @@ public class Expression implements Comparable<Expression>
 		return terms.size()==1&&terms.get(0).isConstant();
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Comparable#compareTo(java.lang.Object)
+	 */
 	@Override public int compareTo(Expression o)
 	{
 		return toString().compareTo(o.toString());
@@ -423,13 +429,16 @@ public class Expression implements Comparable<Expression>
 	 */
 	@Override public Expression clone()
 	{
-		Expression a=new Expression();
-		a.isEquation=isEquation;
-		for(Term current:terms)
-			a.terms.add(current.clone());
+		@SuppressWarnings("unchecked") Expression a=new Expression((Collection<Term>)terms.clone(),isEquation);
+		a.terms.replaceAll(Term::clone);
 		return a;
 	}
 
+	/**
+	 * Factors out the gcd, and if the remaining expression is a quadratic, factors that with the quadratic formula.
+	 * 
+	 * @return The factors of this. None will be equations.
+	 */
 	public ArrayList<Expression> factor()
 	{
 		ArrayList<Expression> ans=new ArrayList<Expression>();
@@ -516,7 +525,7 @@ public class Expression implements Comparable<Expression>
 	}
 
 	/**
-	 * Solves the Expression for each variable.
+	 * Solves the Expression for each variable as best as possible.
 	 * 
 	 * @return An array of solutions, one for each variable.
 	 * @throws NotEquation If the Expression is not an Equation.
@@ -570,12 +579,13 @@ public class Expression implements Comparable<Expression>
 			{
 				firstPow=pow;
 				firstOther=other||firstOther;
-			}else if(secondPow==null||pow.equals(secondPow))
-			{
-				secondPow=pow;
-				secondOther=other||secondOther;
-			}else 
-				throw new NotAbleToSolve("The equation is to the second degree or higher.");
+			}else
+				if(secondPow==null||pow.equals(secondPow))
+				{
+					secondPow=pow;
+					secondOther=other||secondOther;
+				}else
+					throw new NotAbleToSolve("The equation is to the second degree or higher.");
 			for(Entry<Expression,Expression> exp:current.undistr.entrySet())
 			{
 				if(exp.getKey().getVars().contains(iso))
@@ -621,20 +631,34 @@ public class Expression implements Comparable<Expression>
 			return new Expression(raise(new Expression(raiseAndDistribute(new Expression(divide),new Expression(noVar),NEGATE)),new Expression(new Term(root))));
 	}
 
-	public Solution solveFor(char iso) throws NotEquation, NotAbleToSolve
+	/**
+	 * Solves the equation for the specified variable
+	 * 
+	 * @param iso The variable to solve for.
+	 * @return The solution for iso
+	 * @throws NotEquation If this isn't an equation.
+	 */
+	public Solution solveFor(char iso) throws NotEquation
 	{
+		if(!isEquation)
+			throw new NotEquation();
 		Solution s=new Solution(iso);
 		ArrayList<Expression> factors=factor();
 		for(Expression current:factors)
-			s.value.add(current.solveFact(iso));
+			try
+			{
+				s.value.add(current.solveFact(iso));
+			}catch(NotAbleToSolve e)
+			{
+				s.allPossible=false;
+			}
 		return s;
 	}
 
 	/**
-	 * Gets the variables in that
+	 * Gets the variables in this.
 	 * 
-	 * @return An array of char representing the variables in the Expression, contains no
-	 *         duplicates.
+	 * @return All variables in this.
 	 */
 	public HashSet<Character> getVars()
 	{
@@ -702,7 +726,7 @@ public class Expression implements Comparable<Expression>
 	{
 		char sortBy;
 
-		public SortByChar(char sort)
+		SortByChar(char sort)
 		{
 			sortBy=sort;
 		}

@@ -26,7 +26,7 @@ public class Constant extends Number implements Comparable<Number>
 	 */
 	public long denominator=1;
 	/**
-	 * A array of roots in this Constant.
+	 * A Map of roots in this constant. For each key value^(1/key) is multiplied into this constant.
 	 */
 	public TreeMap<Integer,Constant> roots=new TreeMap<Integer,Constant>();
 	/**
@@ -77,6 +77,12 @@ public class Constant extends Number implements Comparable<Number>
 		simplify();
 	}
 
+	/**
+	 * Creates an new constant from a numerator, denominator and roots
+	 * @param num The numerator
+	 * @param denom The denominator
+	 * @param newRoots The roots
+	 */
 	public Constant(long num,long denom,TreeMap<Integer,Constant> newRoots)
 	{
 		numerator=num;
@@ -92,6 +98,10 @@ public class Constant extends Number implements Comparable<Number>
 	{
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Number#doubleValue()
+	 */
 	@Override public double doubleValue()
 	{
 		double sum=1;
@@ -100,11 +110,19 @@ public class Constant extends Number implements Comparable<Number>
 		return sum*numerator/(double)denominator;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Number#floatValue()
+	 */
 	@Override public float floatValue()
 	{
 		return (float)doubleValue();
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Number#intValue()
+	 */
 	@Override public int intValue()
 	{
 		return (int)doubleValue();
@@ -120,9 +138,10 @@ public class Constant extends Number implements Comparable<Number>
 	}
 
 	/**
-	 * Adds a Root to this Constant.
+	 * Adds a root to this Constant.
 	 * 
-	 * @param a The Root to add.
+	 * @param root The root to be added
+	 * @param in The constant to be in the root
 	 */
 	public void addRoot(Integer root,Constant in)
 	{
@@ -132,7 +151,7 @@ public class Constant extends Number implements Comparable<Number>
 	}
 
 	/**
-	 * Simplify the fractions and the Roots.
+	 * Simplify the fractions and the roots.
 	 */
 	public void simplify()
 	{
@@ -186,7 +205,6 @@ public class Constant extends Number implements Comparable<Number>
 
 	/**
 	 * Multiplies this by a.
-	 * 
 	 * @param a The Constant to multiply this by.
 	 */
 	public void multiply(Constant a)
@@ -256,7 +274,7 @@ public class Constant extends Number implements Comparable<Number>
 	public void add(Constant a) throws DifferentRoots
 	{
 		if(!roots.equals(a.roots))
-			throw new DifferentRoots("The irrational part of the Constants are different");
+			throw new DifferentRoots();
 		long lcm=General.lcm(denominator,a.denominator);
 		numerator=numerator*lcm/denominator+a.numerator*lcm/a.denominator;
 		denominator=lcm;
@@ -273,7 +291,7 @@ public class Constant extends Number implements Comparable<Number>
 	public void subtract(Constant a) throws DifferentRoots
 	{
 		if(!roots.equals(a.roots))
-			throw new DifferentRoots("The irrational part of the Constants are different");
+			throw new DifferentRoots();
 		long lcm=General.lcm(denominator,a.denominator);
 		numerator=numerator*lcm/denominator-a.numerator*lcm/a.denominator;
 		denominator=lcm;
@@ -336,7 +354,7 @@ public class Constant extends Number implements Comparable<Number>
 	 * 
 	 * @param a A Constant to get the gcd of.
 	 * @param b The other Constant to get the gcd of.
-	 * @return The gcde of a and b.
+	 * @return The gcd of a and b.
 	 */
 	public static Constant gcd(Constant a,Constant b)
 	{
@@ -378,11 +396,19 @@ public class Constant extends Number implements Comparable<Number>
 		}
 	}
 	
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
 	@Override public int hashCode()
 	{
 		return (int)doubleValue()*(1<<16);
 	}
 	
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Comparable#compareTo(java.lang.Object)
+	 */
 	@Override public int compareTo(Number o)
 	{
 		if(o==null)
@@ -428,12 +454,12 @@ public class Constant extends Number implements Comparable<Number>
 	 * @return The highest integer that is a factor of inRoot, and when rooted by root is an
 	 *         integer.
 	 */
-	public static Constant extract(int root,Constant inRoot)
+	private static Constant extract(int root,Constant inRoot)
 	{
 		int i;
-		for(i=(int)Math.pow(inRoot.numerator,1./root);inRoot.numerator/Math.pow(i,root)%1!=0;i--);
+		for(i=(int)Math.pow(Math.abs(inRoot.numerator),1./root);inRoot.numerator/Math.pow(i,root)%1!=0;i--);
 		Constant answer=new Constant(Math.pow(i,root));
-		for(i=(int)Math.pow(inRoot.denominator,1./root);inRoot.denominator/Math.pow(i,root)%1!=0;i--);
+		for(i=(int)Math.pow(Math.abs(inRoot.denominator),1./root);inRoot.denominator/Math.pow(i,root)%1!=0;i--);
 		answer.divide((int)Math.pow(i,root));
 		return answer;
 	}

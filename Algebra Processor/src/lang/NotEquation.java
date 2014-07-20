@@ -1,6 +1,10 @@
 package lang;
 
-public class NotEquation extends RuntimeException
+/**
+ * Thrown by Expression when a action is called on a non-equation that is only for equations.
+ * @author Luke Senseney
+ */
+public class NotEquation extends UnsupportedOperationException
 {
 	private static final long serialVersionUID=1L;
 
@@ -8,23 +12,12 @@ public class NotEquation extends RuntimeException
 	{
 	}
 
-	public NotEquation(String arg0)
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Throwable#getMessage()
+	 */
+	@Override public String getMessage()
 	{
-		super(arg0);
-	}
-
-	public NotEquation(Throwable arg0)
-	{
-		super(arg0);
-	}
-
-	public NotEquation(String arg0,Throwable arg1)
-	{
-		super(arg0,arg1);
-	}
-
-	public NotEquation(String arg0,Throwable arg1,boolean arg2,boolean arg3)
-	{
-		super(arg0,arg1,arg2,arg3);
+		return "This is not an equation and cannot be solved";
 	}
 }

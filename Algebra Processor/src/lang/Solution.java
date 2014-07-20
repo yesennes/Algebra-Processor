@@ -23,7 +23,6 @@ public class Solution
 
 	/**
 	 * Creates a new solution.
-	 * 
 	 * @param newLetter The variable for this solution.
 	 * @param newValue Expression that is equal to newLetter.
 	 */
@@ -34,8 +33,9 @@ public class Solution
 	}
 
 	/**
-	 * @param iso
-	 * @param arrayList
+	 * Creates a new Solution for a character with a HashSet of values.
+	 * @param newLetter the variable this is a solution for
+	 * @param newValue the values of newLetter
 	 */
 	public Solution(char newLetter,HashSet<Expression> newValue)
 	{
@@ -43,6 +43,10 @@ public class Solution
 		value=newValue;
 	}
 	
+	/**
+	 * Creates a new solution for a variable with no values.
+	 * @param newLetter The variable this is a solution for.
+	 */
 	public Solution(char newLetter)
 	{
 		letter=newLetter;

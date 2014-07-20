@@ -24,6 +24,11 @@ import java.util.HashSet;
 import lang.Expression;
 import lang.Solution;
 
+/**
+ * The default GUI for the AlgebraProcessor.
+ * @author Luke Senseney
+ *
+ */
 public class UserIO extends JFrame implements ActionListener
 {
 	private static final long serialVersionUID=1L;
@@ -46,13 +51,11 @@ public class UserIO extends JFrame implements ActionListener
 		try
 		{
 			for(LookAndFeelInfo info:UIManager.getInstalledLookAndFeels())
-			{
 				if("Nimbus".equals(info.getName()))
 				{
 					UIManager.setLookAndFeel(info.getClassName());
 					break;
 				}
-			}
 		}catch(Exception e)
 		{
 		}
@@ -98,6 +101,9 @@ public class UserIO extends JFrame implements ActionListener
 		output.setEditable(false);
 		output.setFont(font);
 		output.setMaximumSize(new Dimension(1000,1000));
+		output.setText("Enter an equation in the box above, or click on the \"?\" in the bottom right for more help.");
+		output.setLineWrap(true);
+		output.setWrapStyleWord(true);
 		JLayeredPane pane=new JLayeredPane();
 		pane.setLayout(new GridBagLayout());
 		pane.add(output,new GridBagConstraints(0,0,1,1,1,1,GridBagConstraints.CENTER,GridBagConstraints.BOTH,new Insets(0,0,0,0),0,0));
@@ -105,25 +111,27 @@ public class UserIO extends JFrame implements ActionListener
 		help.addActionListener(l->{
 			JDialog helper=new JDialog(this,"Help Menu");
 			JTextArea helpArea=new JTextArea("\tWelcome to AlgebraProcessor Beta! Simply enter an expression or equation in the top box, press enter"
-					+ " or hit the enter key, and it will put it standard form, simplify it, factor it, and, if it is an equation, solve it. Use the"
-					+ " \"^\" to enter exponents. If enter a root, raise it to 1/x, for instance, to take the square root of x, enter \"x^(1/2)\". T"
-					+ "o enter "+new String(Character.toChars(120050))+", the imginary unit, press the buttion with "
-					+new String(Character.toChars(120050))+" on it. If "+new String(Character.toChars(120050))+" is showing up as a square to you, t"
+					+ " or hit the enter key, and it will write it standard form, simplify it, factor it, and, if it is an equation, solve it. Use t"
+					+ "he \"^\" to enter exponents. To take the nth root of a number, raise it to 1/n. For instance, to take the square root of x, e"
+					+ "nter \"x^(1/2)\". To enter "+new String(Character.toChars(120050))+", the imaginary unit, press the buttion with "
+					+new String(Character.toChars(120050))+" on it. If "+new String(Character.toChars(120050))+" is showing up as a "+new String(Character.toChars(0x1F700))+" to you, t"
 					+ "hen your computer doesn't have the font Cambria Math on it. Simply pretend squares are the imaginary unit. Later versions wil"
-					+ "l remove dependency on Cambria Math.It ignores whitespace, but will treat other, non-letter symbols like \"!\" as variables."
+					+ "l remove dependency on Cambria Math. It ignores whitespace, but will treat other, non-letter symbols like \"!\" as variables."
 					+ "\n\n\tCurrently it its capable of simplifying about anyting, factoring out gcd and factoring quadratics. It can solve quadrat"
-					+ "ics and 2 step equations./n/n/tRemeber that the program is still in beta. Garbage in, Garbage out; Currently, if you enter an"
-					+ "ything that doesn't make mathmatical sense, it may give an error or it may make a guess at what you tried to enter. If you e"
-					+ "nter a proper expression or equation and it gives an error or wrong answer, please email what you entered to yesennes@gmail."
+					+ "ics and 2 step equations.\n\n\tGarbage in, Garbage out; currently, if you enter an"
+					+ "ything that doesn't make mathmatical sense, it may give an error or it may try to interpret you tried to enter. Later version may fix this. This product is still in beta, so it may give garbage out anyway."
+					+ "If you enter a proper expression or equation and it gives an error or wrong answer, please email what you entered to yesennes@gmail."
 					+ "com.\n\n\tUpdates will come periodically, to receive them send an email to yesennes@gmail.com requesting to be put on the ema"
 					+ "il list. Upcoming features include support for functions such as sine, better display with fractions actually stacked, bett"
-					+ "er input with superscript and \u221as, factoring and solving of more complex expression, and a button for approximate answer"
-					+ "s. If you would like to see any other features, send an email to yesennes@gmail.com");
+					+ "er input with superscript and \u221as, factoring and solving of more complex expression, constants like \u03c0 and "
+					+new String(Character.toChars(0x1d4ee))+" and a button for approximate answers. If you would like to see any other features,"
+					+ " send an email to yesennes@gmail.com.");
 			helpArea.setLineWrap(true);
+			output.setWrapStyleWord(true);
 			helpArea.setFont(font);
 			helper.add(helpArea);
 			helper.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-			helper.setMinimumSize(new Dimension(500,500));
+			helper.setMinimumSize(new Dimension(500,510));
 			helper.setVisible(true);
 		});
 		pane.add(help,new GridBagConstraints(0,0,1,1,0,0,GridBagConstraints.SOUTHEAST,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
@@ -136,6 +144,7 @@ public class UserIO extends JFrame implements ActionListener
 	 */
 	@Override public void actionPerformed(ActionEvent e)
 	{
+		output.setWrapStyleWord(false);
 		Expression exp=new Expression(input.getText().replaceAll("\\s",""));
 		output.setText("Standand Form:"+exp.toString()+"\n");
 		output.append("Factored:");
@@ -153,7 +162,7 @@ public class UserIO extends JFrame implements ActionListener
 				output.append(" Was not able to solve");
 			else
 				for(Solution current:sols)
-					output.append(current.toString()+"\n\t  ");
+					output.append(current.toString()+"\n                    ");
 		}
 		output.repaint();
 	}

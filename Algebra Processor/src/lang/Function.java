@@ -6,6 +6,7 @@ package lang;
 import java.util.ArrayList;
 
 /**
+ * THIS CLASS HAS NOT BEEN FINISHED AND IS NOT RECOGNIZED BY EXPRESSION OR TERM
  * A class to represent Mathematical functions. In order for the Algebra Processor to recognize a
  * function, please register it with registerFunc(Function o).
  * 

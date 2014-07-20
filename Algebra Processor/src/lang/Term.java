@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -23,18 +22,20 @@ public class Term implements Comparable<Term>
 	 */
 	public Constant coeff=Constant.ONE.clone();
 	/**
-	 * An array of Variables multiplied in the Term.
+	 * A Map of variables and their powers in it. Each key is raised to its value and multiplied into this.
 	 */
 	public TreeMap<Character,Constant> vars;
 	/**
-	 * An array of PolyPowers which is multiplied in the Term
+	 * A Map to represent things which can't be distributed, such as (x+3)^(1/2), each key is raised to its 
+	 * value and then multiplied into this.
 	 */
 	public TreeMap<Expression,Expression> undistr;
 	/**
 	 * Term with no Variables, and a coefficient of -1.
 	 */
 	public static Term NEGATE=new Term(Constant.NEGATE);
-	public HashSet<Expression> restrictions=new HashSet<Expression>();
+	
+	//public HashSet<Expression> restrictions=new HashSet<Expression>();
 
 	/**
 	 * Creates a new Term from a String. Garbage in, Garbage out; if the String is not a correctly
@@ -172,10 +173,10 @@ public class Term implements Comparable<Term>
 	}
 
 	/**
-	 * Creates a new Term from a a Constant and an array of Variables.
+	 * Creates a new Term from a Constant and an map of variables.
 	 * 
 	 * @param newCoeff Constant that becomes the coefficient of the Term.
-	 * @param newVars Variable array that makes the Variables of the Term.
+	 * @param newVars Map that becomes the variables of the Term.
 	 */
 	public Term(Constant newCoeff,Map<Character,Constant> newVars)
 	{
@@ -195,11 +196,11 @@ public class Term implements Comparable<Term>
 	}
 
 	/**
-	 * Creates a new Term from a Constant, Variable array, and two Expression array.
+	 * Creates a new Term from a Constant, map of variables, and a map of Expressions.
 	 * 
 	 * @param newCoeff Constant that becomes the coefficient of the Term.
-	 * @param newVars Variable array that is multiplied into the Term.
-	 * @param newPoly PolyPowers thar are multiplied into the Term.
+	 * @param newVars Map that becomes the variables of the Term.
+	 * @param newUndistr Map of Expression that becomes 
 	 */
 	public Term(Constant newCoeff,Map<Character,Constant> newVars,Map<Expression,Expression> newUndistr)
 	{
@@ -210,7 +211,8 @@ public class Term implements Comparable<Term>
 	}
 
 	/**
-	 * @param var
+	 * Creates a new Term from a variable.
+	 * @param var a character which will be added to this to the power of one.
 	 */
 	public Term(char var)
 	{
@@ -287,15 +289,11 @@ public class Term implements Comparable<Term>
 	 */
 	public static boolean isLikeTerm(Term a,Term b)
 	{
-		if(!a.vars.equals(b.vars))
-			return false;
-		if(!a.undistr.equals(b.undistr))
-			return false;
-		return true;
+		return a.vars.equals(b.vars)&&a.undistr.equals(b.undistr)&&a.coeff.roots.equals(b.coeff.roots);
 	}
 
 	/**
-	 * Adds exponent to the current exponent of var.
+	 * Adds exponent to the current exponent of var. simplifyTerm() may need to be called after this.
 	 * 
 	 * @param var The variable to change the exponent of
 	 * @param exponent The exponent to be added to var.
@@ -306,8 +304,8 @@ public class Term implements Comparable<Term>
 		if(wasThere!=null)
 		{
 			exponent.add(wasThere);
-			if(wasThere.numerator<0&&exponent.numerator>0)
-				restrictions.add(new Expression(new Term(var)));
+/*			if(wasThere.numerator<0&&exponent.numerator>0)
+				restrictions.add(new Expression(new Term(var)));*/
 		}
 	}
 
@@ -320,10 +318,11 @@ public class Term implements Comparable<Term>
 	{
 		for(Entry<Character,Constant> current:toAdd.entrySet())
 			addExponent(current.getKey(),current.getValue().clone());
+		simplifyTerm();
 	}
 
 	/**
-	 * Adds power to the current exponent of base.
+	 * Adds power to the current exponent of base. simplifyTerm() may need to be called after this.
 	 * 
 	 * @param base The expression to change the exponent of
 	 * @param power The exponent to be added to base.
@@ -347,6 +346,7 @@ public class Term implements Comparable<Term>
 	{
 		for(Entry<Expression,Expression> current:toAdd.entrySet())
 			addExponent(current.getKey().clone(),current.getValue().clone());
+		simplifyTerm();
 	}
 
 	/**
@@ -434,11 +434,19 @@ public class Term implements Comparable<Term>
 		return coeff.equals(a.coeff)&&Term.isLikeTerm(this,a);
 	}
 	
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
 	@Override public int hashCode()
 	{
 		return undistr.hashCode()+vars.hashCode()+coeff.hashCode();
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Object#clone()
+	 */
 	@Override public Term clone()
 	{
 		Term a=new Term(coeff.clone());
@@ -457,6 +465,10 @@ public class Term implements Comparable<Term>
 		return vars.size()==0&&undistr.size()==0&&coeff.isRat();
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Comparable#compareTo(java.lang.Object)
+	 */
 	@Override public int compareTo(Term o)
 	{
 		Constant varMax=General.max(vars.values());
@@ -526,7 +538,13 @@ public class Term implements Comparable<Term>
 		a.addExponent(b.undistr);
 		return new Term(a.coeff,a.vars,a.undistr);
 	}
-
+	
+	/**
+	 * Raises a Term to a Constant
+	 * @param a the term to be the base
+	 * @param b the constant to be the exponent
+	 * @return a<sup>b</sup>
+	 */
 	public static Term raise(Term a,Constant b)
 	{
 		a=a.clone();
@@ -539,11 +557,11 @@ public class Term implements Comparable<Term>
 	}
 
 	/**
-	 * Gets an array of variables in this.
+	 * Gets all variables in this.
 	 * 
-	 * @return A char array with the variables in this, no duplicates.
+	 * @return A HashSet with the variables in this, no duplicates.
 	 */
-	public Set<Character> getVars()
+	public HashSet<Character> getVars()
 	{
 		HashSet<Character> var=new HashSet<Character>(vars.keySet());
 		for(Expression current:undistr.keySet())
@@ -552,6 +570,10 @@ public class Term implements Comparable<Term>
 		return var;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
 	@Override public String toString()
 	{
 		String output="";

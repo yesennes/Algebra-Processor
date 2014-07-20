@@ -1,5 +1,9 @@
 package lang;
 
+/**
+ * Unused
+ * @author Luke Senseney
+ */
 public class SystemEquations
 {// Start class
 	private Expression[] equations=new Expression[0];

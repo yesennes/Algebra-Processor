@@ -1,8 +1,8 @@
 package lang;
 
 /**
+ * Thrown when Expression tried to solve itself and couldn't.
  * @author Luke Senseney
- *
  */
 public class NotAbleToSolve extends Exception
 {
