@@ -419,9 +419,11 @@ public class Expression implements Comparable<Expression>
 	{
 		ArrayList<Expression> ans=new ArrayList<Expression>();
 		Term fact=Term.gcd(terms);
+		// Takes all variables and expression raised to a negative power and multiplies them to fact
 		for(Term current:terms)
 		{
 			for(Entry<Character,Constant> on:current.vars.entrySet())
+				// Adds this variable and power to fact if it is negative and fact doen't already have it.
 				if(on.getValue().compareTo(new Constant())<0&&!(fact.vars.containsKey(on.getKey())&&fact.vars.get(on.getKey()).compareTo(on.getValue())>=0))
 					fact.addExponent(on.getKey(),on.getValue());
 			for(Entry<Expression,Expression> on:current.undistr.entrySet())
