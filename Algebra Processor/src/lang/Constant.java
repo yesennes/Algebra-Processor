@@ -1,5 +1,6 @@
 package lang;
 
+import java.io.Serializable;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -8,13 +9,10 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 /**
- * Class to maintain exact accuracy when using repeating decimals, non-integer, or constants, by
- * holding a numerator, denominator, and array of Roots.
- * 
+ * Class to maintain exact accuracy when using repeating decimals, non-integer, or constants, by holding a numerator, denominator, and array of Roots.
  * @author Luke Senseney
- * 
  */
-public class Constant extends Number implements Comparable<Number>
+public class Constant extends Number implements Comparable<Number>,Serializable
 {
 	private static final long serialVersionUID=01L;;
 	/**
@@ -40,7 +38,6 @@ public class Constant extends Number implements Comparable<Number>
 
 	/**
 	 * Creates a new Constant from an long.
-	 * 
 	 * @param newConstant The long to make a Constant.
 	 */
 	public Constant(long newConstant)
@@ -50,7 +47,6 @@ public class Constant extends Number implements Comparable<Number>
 
 	/**
 	 * Creates a new Constant from an numerator and a denominator.
-	 * 
 	 * @param num The new numerator.
 	 * @param denom The new denominator.
 	 */
@@ -63,7 +59,6 @@ public class Constant extends Number implements Comparable<Number>
 
 	/**
 	 * Creates a new Constant from a double.
-	 * 
 	 * @param newConstant The double to make a Constant out of.
 	 */
 	public Constant(double newConstant)
@@ -95,11 +90,11 @@ public class Constant extends Number implements Comparable<Number>
 	 * Creates a new Constant with a value of 0.
 	 */
 	public Constant()
-	{
-	}
+	{}
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Number#doubleValue()
 	 */
 	@Override public double doubleValue()
@@ -112,6 +107,7 @@ public class Constant extends Number implements Comparable<Number>
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Number#floatValue()
 	 */
 	@Override public float floatValue()
@@ -121,6 +117,7 @@ public class Constant extends Number implements Comparable<Number>
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Number#intValue()
 	 */
 	@Override public int intValue()
@@ -130,6 +127,7 @@ public class Constant extends Number implements Comparable<Number>
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Number#longValue()
 	 */
 	@Override public long longValue()
@@ -139,7 +137,6 @@ public class Constant extends Number implements Comparable<Number>
 
 	/**
 	 * Adds a root to this Constant.
-	 * 
 	 * @param root The root to be added
 	 * @param in The constant to be in the root
 	 */
@@ -155,6 +152,7 @@ public class Constant extends Number implements Comparable<Number>
 	 */
 	public void simplify()
 	{
+		// Removes all roots from inside each root, and adds it to the proper root. i.e. takes (2^(1/2))^(1/2) and turns it to 2^(1/4)
 		ArrayList<Entry<Integer,Constant>> toAdd=new ArrayList<Entry<Integer,Constant>>();
 		for(Entry<Integer,Constant> current:roots.entrySet())
 		{
@@ -171,33 +169,39 @@ public class Constant extends Number implements Comparable<Number>
 		}
 		for(Entry<Integer,Constant> current:toAdd)
 			addRoot(current.getKey(),current.getValue());
-		ArrayList<Entry<Integer,Constant>> entry=new ArrayList<Entry<Integer,Constant>>(roots.entrySet());
-		for(int I=0;I<roots.size();I++)
+		// Sees if anything can be pulled out of the roots. For instance takes the square root of 12 and turns it into 2 root 3.
+		// Then rationalizes the denominator of the root.
+		for(Entry<Integer,Constant> current:roots.entrySet())
 		{
-			Entry<Integer,Constant> current=entry.get(I);
+			// Finds what can be extracted from the current root.
 			Constant extract=extract(current.getKey(),current.getValue());
+			// Takes it out from inside the root.
 			if(!extract.equals(ONE))
-				current.getValue().divide(extract);
+				current.setValue(current.getValue().divide(extract));
+			// Changes extract to what must be multiplied to the coeff.
 			extract.numerator=(long)Math.pow(extract.numerator,1./current.getKey());
 			extract.denominator=(long)Math.pow(extract.denominator,1./current.getKey());
-			current.getValue().numerator=current.getValue().numerator*current.getValue().denominator;
-			denominator=denominator*current.getValue().denominator;
+			current.getValue().numerator*=current.getValue().denominator;
+			denominator*=current.getValue().denominator;
 			current.getValue().denominator=1;
 			if(!extract.equals(ONE))
-				multiply(extract);
+			{
+				Constant toBe=multiply(extract);
+				numerator=toBe.numerator;
+				denominator=toBe.denominator;
+				roots=toBe.roots;
+			}
 		}
 		Collection<Constant> value=roots.values();
+		// Removes all roots with a value of one.
 		while(value.remove(ONE));
-		Constant one=roots.remove(1);
-		if(one!=null)
-		{
-			multiply(one);
-		}
+		// Keeps the denominator positive.
 		if(denominator<0)
 		{
 			numerator=-numerator;
 			denominator=-denominator;
 		}
+		// Reduces the fraction. Does not call .divide(Constant) to avoid recursion
 		double divide=General.gcd(numerator,denominator);
 		numerator=(long)(numerator/divide);
 		denominator=(long)(denominator/divide);
@@ -206,102 +210,91 @@ public class Constant extends Number implements Comparable<Number>
 	/**
 	 * Multiplies this by a.
 	 * @param a The Constant to multiply this by.
+	 * @return this*a
 	 */
-	public void multiply(Constant a)
+	public Constant multiply(Constant a)
 	{
-		numerator=numerator*a.numerator;
-		denominator=denominator*a.denominator;
+		Constant c=clone();
+		c.numerator*=a.numerator;
+		c.denominator*=a.denominator;
 		for(Entry<Integer,Constant> current:a.roots.entrySet())
-			addRoot(current.getKey(),current.getValue());
-		simplify();
-	}
-
-	/**
-	 * Multiplies a shallow copy of a by b and returns it.
-	 * 
-	 * @param a Constant to be multiplied
-	 * @param b Constant to be multiplied
-	 * @return a*b
-	 */
-	public static Constant multiply(Constant a,Constant b)
-	{
-		a=a.clone();
-		a.multiply(b);
-		return a;
+			c.addRoot(current.getKey(),current.getValue());
+		c.simplify();
+		return c;
 	}
 
 	/**
 	 * Multiplies this by a.
-	 * 
 	 * @param a The long to multiply this by.
+	 * @return this*a
 	 */
-	public void multiply(long a)
+	public Constant multiply(long a)
 	{
-		numerator=numerator*a;
-		simplify();
+		Constant c=clone();
+		c.numerator*=a;
+		c.simplify();
+		return c;
 	}
 
 	/**
 	 * Divides this by a.
-	 * 
 	 * @param a The Constant to divide this by.
+	 * @return this/a
 	 */
-	public void divide(Constant a)
+	public Constant divide(Constant a)
 	{
-		Constant clone=a.clone();
-		clone.invert();
-		multiply(clone);
-		simplify();
+		return multiply(a.invert());
 	}
 
 	/**
 	 * Divides this by a.
-	 * 
 	 * @param a The long to divide this by.
+	 * @return this/a
 	 */
-	public void divide(long a)
+	public Constant divide(long a)
 	{
-		denominator=denominator*a;
-		simplify();
+		Constant c=clone();
+		c.numerator/=a;
+		c.simplify();
+		return c;
 	}
 
 	/**
 	 * Adds a to this.
-	 * 
 	 * @param a Constant to add to this.
+	 * @return this+a
 	 * @throws DifferentRoots If the Roots of the Constants are different.
 	 */
-	public void add(Constant a) throws DifferentRoots
+	public Constant add(Constant a) throws DifferentRoots
 	{
 		if(!roots.equals(a.roots))
 			throw new DifferentRoots();
+		// Finds the lcm, adds the numerators/denominators and multiplies by the lcm, then sets the denominator to lcm.
 		long lcm=General.lcm(denominator,a.denominator);
-		numerator=numerator*lcm/denominator+a.numerator*lcm/a.denominator;
-		denominator=lcm;
-		a.denominator=lcm;
-		simplify();
+		return new Constant(numerator*lcm/denominator+a.numerator*lcm/a.denominator,lcm);
 	}
 
 	/**
 	 * Subtracts a from this.
-	 * 
 	 * @param a Constant to subtract from this.
+	 * @return this-a
 	 * @throws DifferentRoots If the Roots of the Constants are different.
 	 */
-	public void subtract(Constant a) throws DifferentRoots
+	public Constant subtract(Constant a) throws DifferentRoots
 	{
-		if(!roots.equals(a.roots))
-			throw new DifferentRoots();
-		long lcm=General.lcm(denominator,a.denominator);
-		numerator=numerator*lcm/denominator-a.numerator*lcm/a.denominator;
-		denominator=lcm;
-		a.denominator=lcm;
-		simplify();
+		return add(a.negate());
+	}
+
+	/**
+	 * @return -this
+	 */
+	public Constant negate()
+	{
+		return multiply(NEGATE);
 	}
 
 	/**
 	 * Checks to see if this is rational.
-	 * 
 	 * @return If this is rational, true, else false.
 	 */
 	public boolean isRat()
@@ -310,48 +303,49 @@ public class Constant extends Number implements Comparable<Number>
 	}
 
 	/**
-	 * Raises this to power. Note: ignores roots in power. For expressions like 5^(5^(1/2)), use
-	 * Term.
-	 * 
+	 * Raises this to power. Note: ignores roots in power. For expressions like 5^(5^(1/2)), use Term.
 	 * @param power the power to raise this by
+	 * @return this^power
 	 */
-	public void raise(Constant power)
+	public Constant raise(Constant power)
 	{
+		Constant c=clone();
+		// If power is less than one, flips this, and raises by -power, else just raises by power.
 		if(power.numerator<0)
 		{
-			invert();
-			numerator=(long)Math.pow(numerator,-power.numerator);
-			denominator=(long)Math.pow(denominator,-power.numerator);
+			c=c.invert();
+			c.numerator=(long)Math.pow(c.numerator,-power.numerator);
+			c.denominator=(long)Math.pow(c.denominator,-power.numerator);
 		}else
 		{
-			numerator=(long)Math.pow(numerator,power.numerator);
-			denominator=(long)Math.pow(denominator,power.numerator);
+			c.numerator=(long)Math.pow(c.numerator,power.numerator);
+			c.denominator=(long)Math.pow(c.denominator,power.numerator);
 		}
+		// If power has a denominator, puts this in a root in a new Constant.
 		if(power.denominator>1)
 		{
-			roots=new TreeMap<Integer,Constant>(Collections.singletonMap((int)power.denominator,this.clone()));
-			numerator=1;
-			denominator=1;
+			c.roots=new TreeMap<Integer,Constant>(Collections.singletonMap((int)power.denominator,this.clone()));
+			c.numerator=1;
+			c.denominator=1;
 		}
-		simplify();
+		c.simplify();
+		return c;
 	}
 
 	/**
-	 * Inverts this, or sets this equal to 1/this
+	 * Inverts this
+	 * @return 1/this
 	 */
-	public void invert()
+	public Constant invert()
 	{
-		long temp=numerator;
-		numerator=denominator;
-		denominator=temp;
-		for(Constant current:roots.values())
-			current.invert();
-		simplify();
+		@SuppressWarnings("unchecked") Constant c=new Constant(denominator,numerator,(TreeMap<Integer,Constant>)roots.clone());
+		c.roots.replaceAll((t,u)->u.invert());
+		c.simplify();
+		return c;
 	}
 
 	/**
 	 * Gets the greatest common divisor of two Constants
-	 * 
 	 * @param a A Constant to get the gcd of.
 	 * @param b The other Constant to get the gcd of.
 	 * @return The gcd of a and b.
@@ -381,13 +375,13 @@ public class Constant extends Number implements Comparable<Number>
 
 	/**
 	 * Checks if this is equal to another Constant.
-	 * 
 	 * @param a Constant to check if this is equal to.
 	 * @return If the Constants equal, true, else false.
 	 */
 	@Override public boolean equals(Object o)
 	{
-		try{
+		try
+		{
 			Number a=(Number)o;
 			return a.doubleValue()==doubleValue();
 		}catch(ClassCastException e)
@@ -395,18 +389,20 @@ public class Constant extends Number implements Comparable<Number>
 			return false;
 		}
 	}
-	
+
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override public int hashCode()
 	{
 		return (int)doubleValue()*(1<<16);
 	}
-	
+
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Comparable#compareTo(java.lang.Object)
 	 */
 	@Override public int compareTo(Number o)
@@ -419,44 +415,44 @@ public class Constant extends Number implements Comparable<Number>
 		else
 			return diff<0?-1:0;
 	}
-	
+
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#toString()
 	 */
 	@Override public String toString()
 	{
 		String r="";
-		for(Entry<Integer,Constant> current:roots.entrySet())
-		{
-			if(current.getKey()==2)
-				r+="\u221a";
-			else if(current.getKey()==3)
-				r+="\u221b";
-			else if(current.getKey()==4)
-				r+="\u221c";
-			else
-				r+=(char)(8304+current.getKey())+"\u221a";
-			r+='('+current.getValue().toString()+')';
-		}
-		if(denominator!=1)
-			r+="/"+denominator;
+		// If there is nothing in the roots, or numerator isn't 1 or -1,adds the numerator to this. If the numerator is
+		// -1 and there are roots, just add the minus sign to this.
 		if(roots.size()==0||(numerator!=1&&numerator!=-1))
 			r=numerator+r;
 		else if(numerator==-1)
 			r="-"+r;
+		for(Entry<Integer,Constant> current:roots.entrySet())
+		{
+			// Generates the proper root symbol for the root, and then whats in the root.
+			if(current.getKey()<5)
+				r+=(char)(0x2218+current.getKey());
+			else
+				r+=(char)(0x2070+current.getKey())+"\u221a";
+			r+='('+current.getValue().toString()+')';
+		}
+		if(denominator!=1)
+			r+="/"+denominator;
 		return r;
 	}
 
 	/**
-	 * Gets the highest integer that is a factor of inRoot, and when rooted by root is an integer.
-	 * 
-	 * @return The highest integer that is a factor of inRoot, and when rooted by root is an
-	 *         integer.
+	 * Finds the x, where x is the highest number that meets these requirements: is a factor of inRoot, and is an rational number when raise to 1/root. This makes the returned Constant for simplifying roots, i.e. to simplify 12^(1/2) call
+	 * extract(2,12) it will return 4. divide the 12 by for to get 3, then raise 4 to 1/2 to get 2. The simplified version is 2(3)^1/2
+	 * @return The highest integer that is a factor of inRoot, and when rooted by root is an integer.
 	 */
 	private static Constant extract(int root,Constant inRoot)
 	{
 		int i;
+		// Finds the highest number, that raised to
 		for(i=(int)Math.pow(Math.abs(inRoot.numerator),1./root);inRoot.numerator/Math.pow(i,root)%1!=0;i--);
 		Constant answer=new Constant(Math.pow(i,root));
 		for(i=(int)Math.pow(Math.abs(inRoot.denominator),1./root);inRoot.denominator/Math.pow(i,root)%1!=0;i--);

@@ -16,4 +16,9 @@ public class NotAbleToSolve extends Exception
 		super(message);
 		// TODO Auto-generated constructor stub
 	}
-}
+	
+	public NotAbleToSolve(String message, Throwable cause)
+	{
+		super(message,cause);
+	}
+}// Glory to God

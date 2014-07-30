@@ -1,7 +1,9 @@
 package lang;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Class that represents all solutions for a variable.
@@ -9,8 +11,9 @@ import java.util.HashSet;
  * @author Luke Senseney
  * 
  */
-public class Solution
+public class Solution implements Serializable
 {
+	private static final long serialVersionUID=1L;
 	/**
 	 * The variable this is a solution for.
 	 */
@@ -18,7 +21,10 @@ public class Solution
 	/**
 	 * Expressions which are equal the the variable.
 	 */
-	public HashSet<Expression> value;
+	public Set<Expression> value;
+	/**
+	 * Represents whether this has all possible solution for letter, or if others remain unknown
+	 */
 	public boolean allPossible=true;
 
 	/**
@@ -37,7 +43,7 @@ public class Solution
 	 * @param newLetter the variable this is a solution for
 	 * @param newValue the values of newLetter
 	 */
-	public Solution(char newLetter,HashSet<Expression> newValue)
+	public Solution(char newLetter,Set<Expression> newValue)
 	{
 		letter=newLetter;
 		value=newValue;
@@ -64,4 +70,4 @@ public class Solution
 			rtn+=current.toString()+" or ";
 		return rtn.substring(0,rtn.length()-4);
 	}
-}
+}// Glory to God

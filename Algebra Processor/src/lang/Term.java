@@ -1,5 +1,6 @@
 package lang;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -15,8 +16,9 @@ import java.util.TreeMap;
  * @author Luke Senseney
  * 
  */
-public class Term implements Comparable<Term>
+public class Term implements Comparable<Term>,Serializable
 {
+	private static final long serialVersionUID=1L;
 	/**
 	 * The coefficient of the Term.
 	 */
@@ -71,18 +73,18 @@ public class Term implements Comparable<Term>
 						if(base!="")
 						{
 							Constant multi=new Constant(Double.valueOf(base));
-							multi.raise(finalPow.terms.get(0).coeff);
+							multi=multi.raise(finalPow.terms.get(0).coeff);
 							if(!inverse)
-								coeff.multiply(multi);
+								coeff=coeff.multiply(multi);
 							else
-								coeff.divide(multi);
+								coeff=coeff.divide(multi);
 							if(base.charAt(0)=='-'&&Math.pow(Double.valueOf(base),Double.valueOf(base))>0)
 								coeff.numerator-=coeff.numerator;
 							base="";
 						}else
 						{
 							if(inverse)
-								finalPow.terms.get(0).coeff.numerator-=finalPow.terms.get(0).coeff.numerator;
+								finalPow.terms.get(0).coeff=finalPow.terms.get(0).coeff.negate();
 							addExponent(var,finalPow.terms.get(0).coeff);
 							var='\0';
 						}
@@ -112,9 +114,9 @@ public class Term implements Comparable<Term>
 							if(base.equals("-"))
 								base="-1";
 							if(!inverse)
-								coeff.multiply(new Constant(Double.valueOf(base)));
+								coeff=coeff.multiply(new Constant(Double.valueOf(base)));
 							else
-								coeff.divide(new Constant(Double.valueOf(base)));
+								coeff=coeff.divide(new Constant(Double.valueOf(base)));
 							inverse=false;
 							base="";
 						}
@@ -140,17 +142,17 @@ public class Term implements Comparable<Term>
 					if(base!="")
 					{
 						Constant multi=new Constant(Double.valueOf(base));
-						multi.raise(finalPow.terms.get(0).coeff);
+						multi=multi.raise(finalPow.terms.get(0).coeff);
 						if(!inverse)
-							coeff.multiply(multi);
+							coeff=coeff.multiply(multi);
 						else
-							coeff.divide(multi);
+							coeff=coeff.divide(multi);
 						if(base.charAt(0)=='-'&&Math.pow(Double.valueOf(base),finalPow.terms.get(0).coeff.doubleValue())>0)
-							coeff.numerator=-coeff.numerator;
+							coeff=coeff.negate();
 					}else
 					{
 						if(inverse)
-							finalPow.terms.get(0).coeff.numerator=-finalPow.terms.get(0).coeff.numerator;
+							finalPow.terms.get(0).coeff=finalPow.terms.get(0).coeff.negate();
 						addExponent(var,finalPow.terms.get(0).coeff);
 						var='\0';
 					}
@@ -164,9 +166,9 @@ public class Term implements Comparable<Term>
 					}
 			}else
 				if(!inverse)
-					coeff.multiply(new Constant(Double.valueOf(base)));
+					coeff=coeff.multiply(new Constant(Double.valueOf(base)));
 				else
-					coeff.divide(new Constant(Double.valueOf(base)));
+					coeff=coeff.divide(new Constant(Double.valueOf(base)));
 		if(var!='\0')
 			addExponent(var,new Constant(inverse?-1:1));
 		simplifyTerm();
@@ -223,7 +225,9 @@ public class Term implements Comparable<Term>
 	 * Combines variables and bases that are the same and adds powers of these.
 	 */
 	public void simplifyTerm()
-	{// start simplifyTerm
+	{
+		// Finds any entries in undistr that are a single Term raised to a Constant, and multiplies them into this.
+		// Term to be multiplied into this.
 		Term toBe=new Term(new Constant(1));
 		boolean removed=false;
 		Iterator<Entry<Expression,Expression>> iter=undistr.entrySet().iterator();
@@ -232,26 +236,29 @@ public class Term implements Comparable<Term>
 			Entry<Expression,Expression> current=iter.next();
 			if(current.getKey().terms.size()==1&&current.getValue().isConstant())
 			{
-				toBe=multiply(toBe,Term.raise(current.getKey().terms.get(0),current.getValue().terms.get(0).coeff));
+				toBe=toBe.multiply(current.getKey().terms.get(0).raise(current.getValue().terms.get(0).coeff));
 				iter.remove();
 				removed=true;
 			}
 		}
 		Collection<Expression> removeFrom=undistr.values();
+		// Removes all pairs in undistr with an power of zero.
 		while(removeFrom.remove(Expression.ZERO));
 		if(removed)
-		{
-			toBe=multiply(toBe,this);
+		{ 
+			toBe=toBe.multiply(this);
 			coeff=toBe.coeff;
 			vars=toBe.vars;
 			undistr=toBe.undistr;
 		}
+		// Looks in the coeff to see if any (-1)^(1/2) can be turned in to i.
 		Constant inRoot=coeff.roots.get(new Constant(2));
 		if(inRoot!=null&&inRoot.numerator<0)
 		{
 			coeff.roots.get(new Constant(2)).numerator*=-1;
 			addExponent('\u05D0',Constant.ONE);
 		}
+		// Looks at the power of i for anything that can be simplified. i.e. takes i^2 and turns it to -1.
 		Constant imaginary=vars.get('\u05D0');
 		if(imaginary!=null)
 			switch((int)imaginary.numerator%4)
@@ -271,7 +278,9 @@ public class Term implements Comparable<Term>
 					coeff.multiply(Constant.NEGATE);
 			}
 		Collection<Constant> values=vars.values();
+		// Removes any variables to the 0th power.
 		while(values.remove(new Constant()));
+		// If this contains a zero base in undistr, sets it to 0
 		if(undistr.containsKey(Expression.ZERO))
 		{
 			coeff=new Constant();
@@ -300,13 +309,7 @@ public class Term implements Comparable<Term>
 	 */
 	void addExponent(char var,Constant exponent)
 	{
-		Constant wasThere=vars.put(var,exponent);
-		if(wasThere!=null)
-		{
-			exponent.add(wasThere);
-/*			if(wasThere.numerator<0&&exponent.numerator>0)
-				restrictions.add(new Expression(new Term(var)));*/
-		}
+		vars.merge(var,exponent,Constant::add);
 	}
 
 	/**
@@ -329,12 +332,7 @@ public class Term implements Comparable<Term>
 	 */
 	void addExponent(Expression base,Expression power)
 	{
-		Expression wasThere=undistr.put(base,power);
-		if(wasThere!=null)
-		{
-			power.terms.addAll(wasThere.terms);
-			power.simplifyTerms();
-		}
+		undistr.merge(base,power,Expression::add);
 	}
 
 	/**
@@ -358,22 +356,27 @@ public class Term implements Comparable<Term>
 	 */
 	public static Term gcd(Term a,Term b)
 	{
-		TreeMap<Character,Constant> var=new java.util.TreeMap<Character,Constant>();
+		TreeMap<Character,Constant> var=new TreeMap<Character,Constant>();
 		TreeMap<Expression,Expression> undis=new TreeMap<Expression,Expression>();
+		// Goes through all the variables in each term and finds variables that are the same and adds the highest power to var.
 		if(a.vars.size()!=0&&b.vars.size()!=0)
 		{
 			Iterator<Entry<Character,Constant>> aVar=a.vars.entrySet().iterator();
 			Iterator<Entry<Character,Constant>> bVar=b.vars.entrySet().iterator();
 			Entry<Character,Constant> currentB=bVar.next();
+			// Takes advantage of the fact that both are sorted. Loops through a, advancing b until its value is greater than or equal a's
 			do
 			{
 				Entry<Character,Constant> currentA=aVar.next();
+				// Advances b until its value is greater than or equal to a's
 				while(bVar.hasNext()&&currentA.getKey()>currentB.getKey())
 					currentB=bVar.next();
+				// If both variables are equal, adds the lowest to var.
 				if(currentA.getKey()==currentB.getKey())
 					var.put(currentA.getKey(),currentA.getValue().compareTo(currentB.getValue())>0?currentB.getValue():currentA.getValue());
 			}while(aVar.hasNext());
 		}
+		// Does the same as above, except for undistr
 		if(a.undistr.size()!=0&&b.undistr.size()!=0)
 		{
 			Iterator<Entry<Expression,Expression>> aUn=a.undistr.entrySet().iterator();
@@ -471,6 +474,7 @@ public class Term implements Comparable<Term>
 	 */
 	@Override public int compareTo(Term o)
 	{
+		// Compares terms in a somewhat arbitrary order, first by which has the highest power, then by each power, then by undistr.
 		Constant varMax=General.max(vars.values());
 		Constant oVarMax=General.max(o.vars.values());
 		if(varMax!=null)
@@ -530,13 +534,40 @@ public class Term implements Comparable<Term>
 	 * @param b The other Term to multiply.
 	 * @return A Term which is the product of a and b.
 	 */
-	public static Term multiply(Term a,Term b)
+	public Term multiply(Term b)
 	{
-		a=a.clone();
-		a.coeff.multiply(b.coeff);
+		Term a=clone();
+		a.coeff=a.coeff.multiply(b.coeff);
 		a.addExponents(b.vars);
 		a.addExponent(b.undistr);
-		return new Term(a.coeff,a.vars,a.undistr);
+		return a;
+	}
+	
+	/**
+	 * @param divisor What this is to be divided by
+	 * @return this/divisor
+	 */
+	public Term divide(Term divisor)
+	{
+		return multiply(divisor.negate());
+	}
+	
+	/**
+	 * @return -this
+	 */
+	public Term negate()
+	{
+		Term c=clone();
+		c.coeff=c.coeff.multiply(Constant.NEGATE);
+		return c;
+	}
+	
+	/**
+	 * @return 1/this
+	 */
+	public Term invert()
+	{
+		return raise(Constant.NEGATE);
 	}
 	
 	/**
@@ -545,14 +576,14 @@ public class Term implements Comparable<Term>
 	 * @param b the constant to be the exponent
 	 * @return a<sup>b</sup>
 	 */
-	public static Term raise(Term a,Constant b)
+	public Term raise(Constant b)
 	{
-		a=a.clone();
-		a.coeff.raise(b);
-		for(Constant current:a.vars.values())
-			current.multiply(b);
+		Term a=clone();
+		a.coeff=a.coeff.raise(b);
+		for(Entry<Character,Constant> current:a.vars.entrySet())
+			current.setValue(current.getValue().multiply(b));
 		for(Entry<Expression,Expression> current:a.undistr.entrySet())
-			current.setValue(new Expression(Expression.distribute(current.getValue(),new Expression(new Term(b)))));
+			current.setValue(current.getValue().multiply(new Expression(new Term(b))));
 		return a;
 	}
 
@@ -580,10 +611,13 @@ public class Term implements Comparable<Term>
 		if(coeff.compareTo(new Constant())>=0)
 			output+="+";
 		boolean isConst=isConstant();
+		// If the numerator of this term is not 1 or -1, or this term is just 1 or -1, add the numerator of coeff to the start of this term. 
+		// If the numerator is -1 and there are other variables, add a minus sign to the start.
 		if(coeff.numerator==-1&&!isConst)
 				output+="-";
 		else if(coeff.numerator!=1||isConst)
 			output+=coeff.numerator;
+		// Goes through the roots of the coeff, generates the proper char(s) for it and adds them to output.
 		for(Entry<Integer,Constant> current:coeff.roots.entrySet())
 		{
 			if(current.getKey()==2)
@@ -596,12 +630,14 @@ public class Term implements Comparable<Term>
 				output+=(char)(8304+current.getKey())+"\u221a";
 			output+='('+current.getValue().toString()+')';
 		}
+		// Adds all the variables to the output
 		for(Entry<Character,Constant> current:vars.entrySet())
 		{
 			output+=current.getKey();
 			if(!current.getValue().equals(Constant.ONE))
 				output+="^"+current.getValue();
 		}
+		// Goes through all the undistr, and depending on if the base or power isn't a single term, adds parentheses around it.
 		for(Entry<Expression,Expression> current:undistr.entrySet())
 			if(current.getKey().terms.size()>1)
 				output+='('+current.getKey().toString()+")^"+(current.getValue().terms.size()==1?current.getValue().toString():"("+current.getValue()+')');
@@ -609,6 +645,7 @@ public class Term implements Comparable<Term>
 				output+=current.getKey().toString()+'^'+(current.getValue().terms.size()==1?current.getValue().toString():"("+current.getValue()+')');
 		if(coeff.denominator!=1)
 			output+="/"+coeff.denominator;
+		// Replaces all of the substitute for the imaginary unit with the characters that represent it.
 		output=output.replace("\u05D0",new String(Character.toChars(120050)));
 		return output;
 	}
