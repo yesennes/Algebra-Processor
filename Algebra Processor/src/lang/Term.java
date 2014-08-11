@@ -46,7 +46,7 @@ public class Term implements Comparable<Term>,Serializable
 	 * @param newTerm the String to make a Term from.
 	 */
 	public Term(String newTerm)
-	{// start constructor
+	{
 		vars=new TreeMap<Character,Constant>();
 		undistr=new TreeMap<Expression,Expression>();
 		int inParentheses=0;

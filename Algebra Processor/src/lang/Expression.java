@@ -11,6 +11,8 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Class that represents a mathematical expression, or a equation if isEquation is true.
@@ -43,131 +45,167 @@ public class Expression implements Comparable<Expression>,Serializable
 	/**
 	 * Creates a new Expression from a string. If there is a "=" in the string isEquation is true. Cannot handle equations with more than one "=" i.e. a=b=c. Garbage in, Garbage out, if the String is not a correctly formated expression or equation,
 	 * will attempt to read or throw exception.
-	 * @param newEquation The string to make a equation from.
+	 * @param newExpression The string to make a equation from.
 	 */
-	public Expression(String newEquation)
+	public Expression(String newExpression) throws MathFormatException
 	{
-		newEquation=newEquation.replace(new String(Character.toChars(120050)),"\u05D0");
-		terms=new ArrayList<Term>(5);
-		int inParentheses=0;
-		boolean leftSide=true,inverse=false,raised=false,wasParen=false,inParen=false,pastParen=false;
-		String power="",coeff="",paren="";
-		char charBefore='\0';
-		for(char current:newEquation.toCharArray())
+		terms=new ArrayList<Term>();
+		newExpression=newExpression.replaceAll("\\s","");
+		newExpression=newExpression.replace(new String(Character.toChars(120050)),"\u05D0");
+		String[] split=newExpression.split("=");
+		if(split.length>2)
+			throw new MathFormatException("There are too may \"=\" in the entered String");
+		terms=add(notEquation(split[0])).terms;
+		if(split.length>1)
 		{
-			if((current=='+'||current=='-'||current=='=')&&inParentheses==0&&charBefore!='/'&&charBefore!='*'&&charBefore!='^')
-			{
-				if(charBefore!='+'&&charBefore!='-'&&charBefore!='='&&charBefore!='\0')
-				{
-					if(coeff.startsWith("/"))
-						coeff='1'+coeff;
-					if(!leftSide)
-						coeff='-'+coeff;
-					if(paren.equals(""))
-						terms.add(new Term(coeff));
-					else if(power.equals(""))
-						if(coeff.equals(""))
-							terms.addAll((!inverse?new Expression(paren).terms:new Expression(paren).invert().terms));
-						else
-							terms.addAll(new Expression(coeff).multiply(!inverse?new Expression(paren):new Expression(paren).invert()).terms);
-					else if(coeff.equals(""))
-						terms.addAll(!inverse?new Expression(paren).raise(new Expression(power)).terms:new Expression(paren).raise(new Expression(power).multiply(NEGATIVE)).terms);
-					else
-						terms.addAll(new Expression(paren).raise(NEGATIVE.multiply(!inverse?new Expression(power):new Expression(power))).multiply(new Expression(coeff)).terms);
-					coeff="";
-					power="";
-					paren="";
-					inverse=false;
-					raised=false;
-					wasParen=false;
-					inParen=false;
-					pastParen=false;
-				}
-				if(current=='-')
-					coeff+='-';
-				if(current=='=')
-				{
-					leftSide=false;
-					isEquation=true;
-				}
-			}else if(raised)
-				if((current=='*'||current=='/')&&inParentheses==0)
-				{
-					raised=false;
-					coeff=coeff+current;
-				}else
-				{
-					if(current=='(')
-						inParentheses++;
-					else if(current==')')
-						inParentheses--;
-					power=power+current;
-				}
-			else if(!inParen)
-			{
-				if(current=='(')
-				{
-					if(charBefore!='^'&&inParentheses==0&&!pastParen)
-					{
-						inParen=true;
-						if(charBefore=='/')
-							inverse=true;
-					}else
-						coeff=coeff+current;
-					inParentheses++;
-				}else if(current=='^'&&charBefore==')'&&wasParen)
-					raised=true;
-				else
-				{
-					if(current==')')
-						inParentheses--;
-					coeff=coeff+current;
-				}
-				wasParen=false;
-			}else if(current==')')
-			{
-				inParentheses--;
-				if(inParentheses!=0)
-					paren=paren+current;
-				else
-				{
-					wasParen=true;
-					inParen=false;
-					pastParen=true;
-				}
-			}else
-			{
-				if(current=='(')
-					inParentheses++;
-				paren=paren+current;
-			}
-			charBefore=current;
+			terms=subtract(notEquation(split[1])).terms;
+			isEquation=true;
 		}
-		if(coeff.startsWith("/"))
-			coeff='1'+coeff;
-		if(paren.equals(""))
+//		int inParentheses=0;
+//		boolean leftSide=true,inverse=false,raised=false,wasParen=false,inParen=false,pastParen=false;
+//		String power="",coeff="",paren="";
+//		char charBefore='\0';
+//		for(char current:newExpression.toCharArray())
+//		{
+//			if((current=='+'||current=='-'||current=='=')&&inParentheses==0&&charBefore!='/'&&charBefore!='*'&&charBefore!='^')
+//			{
+//				if(charBefore!='+'&&charBefore!='-'&&charBefore!='='&&charBefore!='\0')
+//				{
+//					if(coeff.startsWith("/"))
+//						coeff='1'+coeff;
+//					if(!leftSide)
+//						coeff='-'+coeff;
+//					if(paren.equals(""))
+//						terms.add(new Term(coeff));
+//					else if(power.equals(""))
+//						if(coeff.equals(""))
+//							terms.addAll((!inverse?new Expression(paren).terms:new Expression(paren).invert().terms));
+//						else
+//							terms.addAll(new Expression(coeff).multiply(!inverse?new Expression(paren):new Expression(paren).invert()).terms);
+//					else if(coeff.equals(""))
+//						terms.addAll(!inverse?new Expression(paren).raise(new Expression(power)).terms:new Expression(paren).raise(new Expression(power).multiply(NEGATIVE)).terms);
+//					else
+//						terms.addAll(new Expression(paren).raise(NEGATIVE.multiply(!inverse?new Expression(power):new Expression(power))).multiply(new Expression(coeff)).terms);
+//					coeff="";
+//					power="";
+//					paren="";
+//					inverse=false;
+//					raised=false;
+//					wasParen=false;
+//					inParen=false;
+//					pastParen=false;
+//				}
+//				if(current=='-')
+//					coeff+='-';
+//				if(current=='=')
+//				{
+//					leftSide=false;
+//					isEquation=true;
+//				}
+//			}else if(raised)
+//				if((current=='*'||current=='/')&&inParentheses==0)
+//				{
+//					raised=false;
+//					coeff=coeff+current;
+//				}else
+//				{
+//					if(current=='(')
+//						inParentheses++;
+//					else if(current==')')
+//						inParentheses--;
+//					power=power+current;
+//				}
+//			else if(!inParen)
+//			{
+//				if(current=='(')
+//				{
+//					if(charBefore!='^'&&inParentheses==0&&!pastParen)
+//					{
+//						inParen=true;
+//						if(charBefore=='/')
+//							inverse=true;
+//					}else
+//						coeff=coeff+current;
+//					inParentheses++;
+//				}else if(current=='^'&&charBefore==')'&&wasParen)
+//					raised=true;
+//				else
+//				{
+//					if(current==')')
+//						inParentheses--;
+//					coeff=coeff+current;
+//				}
+//				wasParen=false;
+//			}else if(current==')')
+//			{
+//				inParentheses--;
+//				if(inParentheses!=0)
+//					paren=paren+current;
+//				else
+//				{
+//					wasParen=true;
+//					inParen=false;
+//					pastParen=true;
+//				}
+//			}else
+//			{
+//				if(current=='(')
+//					inParentheses++;
+//				paren=paren+current;
+//			}
+//			charBefore=current;
+//		}
+//		if(coeff.startsWith("/"))
+//			coeff='1'+coeff;
+//		if(paren.equals(""))
+//		{
+//			Term toAdd=new Term(coeff);
+//			if(!leftSide)
+//				toAdd.coeff=toAdd.coeff.negate();
+//			terms.add(toAdd);
+//		}else
+//		{
+//			Expression toAdd;
+//			if(power.equals(""))
+//				if(coeff.equals(""))
+//					toAdd=!inverse?new Expression(paren):new Expression(paren).invert();
+//				else
+//					toAdd=new Expression(coeff).multiply(!inverse?new Expression(paren):new Expression(paren).invert());
+//			else if(coeff.equals(""))
+//				toAdd=new Expression(paren).raise(!inverse?new Expression(power):new Expression(power).multiply(NEGATIVE));
+//			else
+//				toAdd=new Expression(paren).raise(!inverse?new Expression(power):new Expression(power).multiply(NEGATIVE)).multiply(new Expression(coeff));
+//			if(!leftSide)
+//				toAdd=toAdd.multiply(NEGATIVE);
+//			terms.addAll(toAdd.terms);
+//		}
+//		simplifyTerms();
+	}
+	
+	private Expression notEquation(String s)
+	{
+		String termRegex="(?:[\\^/*]-|[^()+-])";
+		Pattern paren=Pattern.compile("(.*?)(-{0,1}"+termRegex+"*)\\(([^\\(\\)]*)\\)("+termRegex+"*)(.*)");
+		Matcher match=paren.matcher(s);
+		Expression add;
+		if(match.matches())
 		{
-			Term toAdd=new Term(coeff);
-			if(!leftSide)
-				toAdd.coeff=toAdd.coeff.negate();
-			terms.add(toAdd);
+			add=new Expression();
+			Expression multi=Expression.ONE;
+			if(match.group(2).endsWith("^"));
+				multi=multi.multiply(new Expression(new Term(match.group(2)+match.group(3)+match.group(4))));
 		}else
-		{
-			Expression toAdd;
-			if(power.equals(""))
-				if(coeff.equals(""))
-					toAdd=!inverse?new Expression(paren):new Expression(paren).invert();
-				else
-					toAdd=new Expression(coeff).multiply(!inverse?new Expression(paren):new Expression(paren).invert());
-			else if(coeff.equals(""))
-				toAdd=new Expression(paren).raise(!inverse?new Expression(power):new Expression(power).multiply(NEGATIVE));
-			else
-				toAdd=new Expression(paren).raise(!inverse?new Expression(power):new Expression(power).multiply(NEGATIVE)).multiply(new Expression(coeff));
-			if(!leftSide)
-				toAdd=toAdd.multiply(NEGATIVE);
-			terms.addAll(toAdd.terms);
-		}
-		simplifyTerms();
+			add=noParen(s);
+		return add;
+	}
+
+	private Expression noParen(String s)
+	{
+		Matcher term=Pattern.compile("-{0,1}(?:[\\^/*]-|[^+-])+").matcher(s);
+		Expression retrn=new Expression();
+		while(term.find())
+			retrn=retrn.add(new Term(term.group()));
+		return retrn;
 	}
 
 	/**
@@ -268,7 +306,7 @@ public class Expression implements Comparable<Expression>,Serializable
 	/**
 	 * Multiplies this by another Expression.
 	 * @param multiplier Expression to be multiplied by this.
-	 * @return (expression)*(multiplier). Should contain no references to this or multiplier.
+	 * @return this*(multiplier). Should contain no references to this or multiplier.
 	 */
 	public Expression multiply(Expression multiplier)
 	{
@@ -277,6 +315,21 @@ public class Expression implements Comparable<Expression>,Serializable
 		for(Term exp:terms)
 			for(Term multi:multiplier.terms)
 				retrn.terms.add(exp.multiply(multi));
+		retrn.simplifyTerms();
+		return retrn;
+	}
+
+	/**
+	 * Multiplies this by a Term
+	 * @param multiplier Term to be multiplied by this.
+	 * @return this*multiplier. Should contain no references to this or multiplier.
+	 */
+	public Expression multiply(Term multiplier)
+	{
+		Expression retrn=new Expression();
+		// Multiplies each term in expression by the multiplier.
+		for(Term exp:terms)
+			retrn.terms.add(exp.multiply(multiplier));
 		retrn.simplifyTerms();
 		return retrn;
 	}

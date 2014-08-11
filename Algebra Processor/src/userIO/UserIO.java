@@ -162,7 +162,7 @@ public class UserIO extends JFrame implements ActionListener
 		try
 		{
 			// Creates an Expression and factors it, then if it is a equation, solves it.
-			Expression exp=new Expression(input.getText().replaceAll("\\s",""));
+			Expression exp=new Expression(input.getText());
 			output.setText("Standand Form:"+exp.toString()+"\n");
 			output.append("Factored:");
 			ArrayList<Expression> facts=exp.factor();
