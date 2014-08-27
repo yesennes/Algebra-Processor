@@ -659,8 +659,7 @@ public class Expression implements Comparable<Expression>,Serializable
 				hasVar.terms.add(currentTerm);
 			else
 				noVar.terms.add(currentTerm);
-		noVar=noVar.multiply(NEGATIVE);
-		hasVar=hasVar.multiply(NEGATIVE);
+		noVar=noVar.negate();
 		// Holds the a+b... of the first pattern or the i of the second.
 		ArrayList<Term> divide=new ArrayList<Term>(hasVar.terms.size());
 		// Used it this equation matches the second pattern, holds the (ax^c+bx^c...+d+e...)^f
