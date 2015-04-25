@@ -131,7 +131,7 @@ public class UserIO extends JFrame implements ActionListener
 							+" on it. If "+imagUnit+" is showing up as a "+new String(Character.toChars(0x1F700))+" to you, t"
 							+"hen your computer doesn't have the font Cambria Math on it. Simply pretend squares are the imaginary unit. Later versions wil"
 							+"l remove dependency on Cambria Math. It ignores whitespace, but will treat other, non-letter symbols like \"!\" as variables."
-							+"\n\n\tCurrently it its capable of simplifying about anyting, factoring out gcd and factoring quadratics. It can solve quadrat"
+							+"\n\n\tCurrently it its capable of simplifying about anything, factoring out gcd and factoring quadratics. It can solve quadrat"
 							+"ics and 2 step equations.\n\n\tGarbage in, Garbage out; currently, if you enter an"
 							+"ything that doesn't make mathmatical sense, it may give an error or it may try to interpret you tried to enter. Later version may fix this. This product is still in beta, so it may give garbage out anyway."
 							+"If you enter a proper expression or equation and it gives an error or wrong answer, please email what you entered to yesennes@gmail."
@@ -196,7 +196,7 @@ public class UserIO extends JFrame implements ActionListener
 
 		public InsertString(String s)
 		{
-			s=insert;
+			insert=s;
 		}
 
 		/*

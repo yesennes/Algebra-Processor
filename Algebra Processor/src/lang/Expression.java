@@ -254,7 +254,7 @@ public class Expression implements Comparable<Expression>,Serializable
 	/**
 	 * Raises this to another Expression.
 	 * @param power the exponent
-	 * @return this<sup>power</sup>. should contain no references to this or power.
+	 * @return this<sup>power</sup>. Should contain no references to this or power.
 	 */
 	public Expression raise(Expression power)
 	{
@@ -719,8 +719,7 @@ public class Expression implements Comparable<Expression>,Serializable
 				hasVar.terms.add(currentTerm);
 			else
 				noVar.terms.add(currentTerm);
-		noVar=noVar.multiply(NEGATIVE);
-		hasVar=hasVar.multiply(NEGATIVE);
+		noVar=noVar.negate();
 		// Holds the a+b... of the first pattern or the i of the second.
 		ArrayList<Term> divide=new ArrayList<Term>(hasVar.terms.size());
 		// Used it this equation matches the second pattern, holds the (ax^c+bx^c...+d+e...)^f
@@ -767,15 +766,7 @@ public class Expression implements Comparable<Expression>,Serializable
 			try
 			{
 				Solution solvedIsoIn=toSolve.solveFor(iso);
-				HashSet<Expression> toRetrn=new HashSet<Expression>();
-				for(Expression current:solvedIsoIn.value)
-				{
-					Expression toAdd=retrn.clone();
-					toAdd.terms.addAll(current.terms);
-					toAdd.simplifyTerms();
-					toRetrn.add(toAdd);
-				}
-				return toRetrn;
+				return new HashSet<Expression>(solvedIsoIn.value);
 			}catch(NotAbleToSolve e)
 			{
 				throw new NotAbleToSolve("The expression "+iso+" is in was unable to be solved.",e);
