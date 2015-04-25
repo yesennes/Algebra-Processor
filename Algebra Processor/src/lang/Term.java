@@ -271,11 +271,11 @@ public class Term implements Comparable<Term>,Serializable
 					break;
 				case 2:
 					imaginary.numerator=0;
-					coeff.multiply(Constant.NEGATE);
+					coeff=coeff.negate();
 					break;
 				case 3:
 					imaginary.numerator=1;
-					coeff.multiply(Constant.NEGATE);
+					coeff=coeff.negate();
 			}
 		Collection<Constant> values=vars.values();
 		// Removes any variables to the 0th power.
@@ -584,6 +584,7 @@ public class Term implements Comparable<Term>,Serializable
 			current.setValue(current.getValue().multiply(b));
 		for(Entry<Expression,Expression> current:a.undistr.entrySet())
 			current.setValue(current.getValue().multiply(new Expression(new Term(b))));
+		a.simplifyTerm();
 		return a;
 	}
 
