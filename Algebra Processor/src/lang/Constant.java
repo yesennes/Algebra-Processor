@@ -423,25 +423,30 @@ public class Constant extends Number implements Comparable<Number>,Serializable
 	 */
 	@Override public String toString()
 	{
-		String r="";
+		StringBuffer r=new StringBuffer();
 		// If there is nothing in the roots, or numerator isn't 1 or -1,adds the numerator to this. If the numerator is
 		// -1 and there are roots, just add the minus sign to this.
 		if(roots.size()==0||(numerator!=1&&numerator!=-1))
-			r=numerator+r;
+			r.append(numerator);
 		else if(numerator==-1)
-			r="-"+r;
+			r.append("-");
 		for(Entry<Integer,Constant> current:roots.entrySet())
 		{
 			// Generates the proper root symbol for the root, and then whats in the root.
 			if(current.getKey()<5)
-				r+=(char)(0x2218+current.getKey());
+				r.append((char)(0x2218+current.getKey()));
 			else
-				r+=(char)(0x2070+current.getKey())+"\u221a";
-			r+='('+current.getValue().toString()+')';
+				r.append((char)(0x2070+current.getKey())+"\u221a");
+			r.append('('+current.getValue().toString()+')');
 		}
 		if(denominator!=1)
-			r+="/"+denominator;
-		return r;
+			r.append("/").append(denominator);
+		return r.toString();
+	}
+	
+	public static Constant valueOf(String s)
+	{
+		return new Constant(Double.valueOf(s));
 	}
 
 	/**

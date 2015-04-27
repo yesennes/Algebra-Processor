@@ -12,7 +12,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Class that represents a mathematical expression, or a equation if isEquation is true.
@@ -41,12 +40,6 @@ public class Expression implements Comparable<Expression>,Serializable
 	 * Expression with a single term, -1
 	 */
 	public static final Expression NEGATIVE=new Expression(Term.NEGATE);
-	private static ArrayList<Pattern> levelOfParen=new ArrayList<Pattern>();
-	private static ArrayList<Pattern> levelOfParenTerm=new ArrayList<Pattern>();
-	{
-		levelOfParen.add(Pattern.compile("(?:[/*\\^]-|[^()+-])"));
-		levelOfParenTerm.add(Pattern.compile("^[-]?"+levelOfParen.get(0).pattern()+"+(?=[+\\-])"));
-	}
 
 	/**
 	 * Creates a new Expression from a string. If there is a "=" in the string isEquation is true. Cannot handle equations with more than one "=" i.e. a=b=c. Garbage in, Garbage out, if the String is not a correctly formated expression or equation,
@@ -61,157 +54,27 @@ public class Expression implements Comparable<Expression>,Serializable
 		String[] split=newExpression.split("=");
 		if(split.length>2)
 			throw new MathFormatException("There are too may \"=\" in the entered String");
-		terms=add(notEquation(split[0])).terms;
+		terms=notEquation(split[0]).terms;
 		if(split.length>1)
 		{
 			terms=subtract(notEquation(split[1])).terms;
 			isEquation=true;
-		}
-		// int inParentheses=0;
-		// boolean leftSide=true,inverse=false,raised=false,wasParen=false,inParen=false,pastParen=false;
-		// String power="",coeff="",paren="";
-		// char charBefore='\0';
-		// for(char current:newExpression.toCharArray())
-		// {
-		// if((current=='+'||current=='-'||current=='=')&&inParentheses==0&&charBefore!='/'&&charBefore!='*'&&charBefore!='^')
-		// {
-		// if(charBefore!='+'&&charBefore!='-'&&charBefore!='='&&charBefore!='\0')
-		// {
-		// if(coeff.startsWith("/"))
-		// coeff='1'+coeff;
-		// if(!leftSide)
-		// coeff='-'+coeff;
-		// if(paren.equals(""))
-		// terms.add(new Term(coeff));
-		// else if(power.equals(""))
-		// if(coeff.equals(""))
-		// terms.addAll((!inverse?new Expression(paren).terms:new Expression(paren).invert().terms));
-		// else
-		// terms.addAll(new Expression(coeff).multiply(!inverse?new Expression(paren):new Expression(paren).invert()).terms);
-		// else if(coeff.equals(""))
-		// terms.addAll(!inverse?new Expression(paren).raise(new Expression(power)).terms:new Expression(paren).raise(new Expression(power).multiply(NEGATIVE)).terms);
-		// else
-		// terms.addAll(new Expression(paren).raise(NEGATIVE.multiply(!inverse?new Expression(power):new Expression(power))).multiply(new Expression(coeff)).terms);
-		// coeff="";
-		// power="";
-		// paren="";
-		// inverse=false;
-		// raised=false;
-		// wasParen=false;
-		// inParen=false;
-		// pastParen=false;
-		// }
-		// if(current=='-')
-		// coeff+='-';
-		// if(current=='=')
-		// {
-		// leftSide=false;
-		// isEquation=true;
-		// }
-		// }else if(raised)
-		// if((current=='*'||current=='/')&&inParentheses==0)
-		// {
-		// raised=false;
-		// coeff=coeff+current;
-		// }else
-		// {
-		// if(current=='(')
-		// inParentheses++;
-		// else if(current==')')
-		// inParentheses--;
-		// power=power+current;
-		// }
-		// else if(!inParen)
-		// {
-		// if(current=='(')
-		// {
-		// if(charBefore!='^'&&inParentheses==0&&!pastParen)
-		// {
-		// inParen=true;
-		// if(charBefore=='/')
-		// inverse=true;
-		// }else
-		// coeff=coeff+current;
-		// inParentheses++;
-		// }else if(current=='^'&&charBefore==')'&&wasParen)
-		// raised=true;
-		// else
-		// {
-		// if(current==')')
-		// inParentheses--;
-		// coeff=coeff+current;
-		// }
-		// wasParen=false;
-		// }else if(current==')')
-		// {
-		// inParentheses--;
-		// if(inParentheses!=0)
-		// paren=paren+current;
-		// else
-		// {
-		// wasParen=true;
-		// inParen=false;
-		// pastParen=true;
-		// }
-		// }else
-		// {
-		// if(current=='(')
-		// inParentheses++;
-		// paren=paren+current;
-		// }
-		// charBefore=current;
-		// }
-		// if(coeff.startsWith("/"))
-		// coeff='1'+coeff;
-		// if(paren.equals(""))
-		// {
-		// Term toAdd=new Term(coeff);
-		// if(!leftSide)
-		// toAdd.coeff=toAdd.coeff.negate();
-		// terms.add(toAdd);
-		// }else
-		// {
-		// Expression toAdd;
-		// if(power.equals(""))
-		// if(coeff.equals(""))
-		// toAdd=!inverse?new Expression(paren):new Expression(paren).invert();
-		// else
-		// toAdd=new Expression(coeff).multiply(!inverse?new Expression(paren):new Expression(paren).invert());
-		// else if(coeff.equals(""))
-		// toAdd=new Expression(paren).raise(!inverse?new Expression(power):new Expression(power).multiply(NEGATIVE));
-		// else
-		// toAdd=new Expression(paren).raise(!inverse?new Expression(power):new Expression(power).multiply(NEGATIVE)).multiply(new Expression(coeff));
-		// if(!leftSide)
-		// toAdd=toAdd.multiply(NEGATIVE);
-		// terms.addAll(toAdd.terms);
-		// }
-		// simplifyTerms();
+		}else
+			simplifyTerms();
 	}
 
-	private Expression notEquation(String s)
+	private static Expression notEquation(String s)
 	{
-		Matcher findParen=levelOfParen.get(0).matcher(s);
-		int i=0;
-		for(;findParen.lookingAt();i++)
-		{
-			if(levelOfParen.size()<=i)
-			{
-				levelOfParen.add(Pattern.compile("(?:"+levelOfParen.get(0)+"|[^\\^]\\("+levelOfParen.get(i-1).pattern()+"\\))+"));
-				levelOfParenTerm.add(Pattern.compile("^[-]?)"+levelOfParen.get(i).pattern()+"+(?=[+\\-])"));
-			}
-			findParen.usePattern(levelOfParenTerm.get(i));
-		}
-		return knownLevel(findParen.group(),i);
-	}
-
-	private Expression knownLevel(String s,int level)
-	{
-		Matcher term=levelOfParenTerm.get(level).matcher(s);
-		Pattern in=levelOfParen.get(level);
 		Expression retrn=new Expression();
-		while(term.find())
+		Matcher findParen=ParenthesesManager.getTerm(0).matcher(s);
+		while(!findParen.hitEnd())
 		{
-			retrn=retrn.add(new Term(term.group()));
+			int i=0;
+			findParen.usePattern(ParenthesesManager.getTerm(0));
+			for(;!findParen.lookingAt();i++)
+				findParen.usePattern(ParenthesesManager.getTerm(i+1));
+			retrn.terms.add(new Term(findParen.group(),i));
+			findParen.region(findParen.end(),s.length());
 		}
 		return retrn;
 	}
@@ -249,6 +112,14 @@ public class Expression implements Comparable<Expression>,Serializable
 	{
 		this(newTerms);
 		isEquation=equation;
+	}
+
+	/**
+	 * @param charAt
+	 */
+	public Expression(char var)
+	{
+		this(new Term(var));
 	}
 
 	/**
@@ -455,10 +326,11 @@ public class Expression implements Comparable<Expression>,Serializable
 			while(iter.hasNext())
 			{
 				Entry<Expression,Expression> current=iter.next();
-				if(current.getValue().isConstant()&&current.getValue().terms.get(0).coeff.numerator>1)
+				if(current.getValue().isConstant()&&(current.getValue().terms.get(0).coeff.denominator==1||current.getValue().terms.get(0).coeff.numerator>1))
 				{
 					iter.remove();
-					terms.addAll(current.getKey().raise(new Expression(terms.get(i))).multiply(current.getValue()).terms);
+					terms.addAll(new Expression(terms.get(i)).multiply(current.getKey().raise(current.getValue().terms.get(0).coeff)).terms);
+					terms.remove(i);
 				}
 			}
 		}

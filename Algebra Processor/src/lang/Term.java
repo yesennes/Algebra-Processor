@@ -1,6 +1,7 @@
 package lang;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -9,6 +10,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.regex.MatchResult;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Class representing a mathematical term.
@@ -22,7 +26,7 @@ public class Term implements Comparable<Term>,Serializable
 	/**
 	 * The coefficient of the Term.
 	 */
-	public Constant coeff=Constant.ONE.clone();
+	public Constant coeff;
 	/**
 	 * A Map of variables and their powers in it. Each key is raised to its value and multiplied into this.
 	 */
@@ -39,6 +43,15 @@ public class Term implements Comparable<Term>,Serializable
 	
 	//public HashSet<Expression> restrictions=new HashSet<Expression>();
 
+	private static int findLevel(String term)
+	{
+		Matcher m=ParenthesesManager.getTerm(0).matcher(term);
+		int level=0;
+		for(;!m.matches();level++)
+			m.usePattern(ParenthesesManager.getTerm(level+1));
+		return level;
+	}
+	
 	/**
 	 * Creates a new Term from a String. Garbage in, Garbage out; if the String is not a correctly
 	 * formated Term, will attempt to read.
@@ -47,130 +60,136 @@ public class Term implements Comparable<Term>,Serializable
 	 */
 	public Term(String newTerm)
 	{
-		vars=new TreeMap<Character,Constant>();
-		undistr=new TreeMap<Expression,Expression>();
-		int inParentheses=0;
-		boolean inverse=false,raised=false,pasRaise=false;
-		String base="",power="";
-		char var='\0';
-		Expression finalPow;
-		for(char current:newTerm.toCharArray())
+		this(newTerm,findLevel(newTerm));
+	}
+
+	/**
+	 * @param newTerm
+	 * @param findLevel
+	 */
+	public Term(String newTerm,int level)
+	{
+		this(Constant.ONE);
+		int neg=0,i=0;
+		for(;newTerm.charAt(i)=='-'||newTerm.charAt(i)=='+';i++)
+			if(newTerm.charAt(i)=='-')
+				neg++;
+		if(neg%2==1)
+			coeff=Constant.NEGATE;
+		newTerm=newTerm.substring(i);
+		String number="[\\d\\.]+";
+		String var="[^\\d\\.()\\^]";
+		Pattern b=Pattern.compile("("+number+")|("+var+")|("+ParenthesesManager.getParen(level)+")");
+		Matcher m=b.matcher(newTerm);
+		boolean inverse=false;
+		while(m.lookingAt())
 		{
-			if(current=='(')
-				inParentheses++;
-			if(raised)
-				if(current=='^'||power.equals("-")||power.equals("")||General.hasNumber(current)&&!pasRaise||inParentheses!=0)
-				{
-					if(!General.hasNumber(current))
-						pasRaise=true;
-					if(current=='^')
-						pasRaise=false;
-					power+=current;
-				}else
-				{
-					finalPow=new Expression(power);
-					if(finalPow.isConstant())
-						if(base!="")
-						{
-							Constant multi=new Constant(Double.valueOf(base));
-							multi=multi.raise(finalPow.terms.get(0).coeff);
-							if(!inverse)
-								coeff=coeff.multiply(multi);
-							else
-								coeff=coeff.divide(multi);
-							if(base.charAt(0)=='-'&&Math.pow(Double.valueOf(base),Double.valueOf(base))>0)
-								coeff.numerator-=coeff.numerator;
-							base="";
-						}else
-						{
-							if(inverse)
-								finalPow.terms.get(0).coeff=finalPow.terms.get(0).coeff.negate();
-							addExponent(var,finalPow.terms.get(0).coeff);
-							var='\0';
-						}
-					else
-						if(base!="")
-						{
-							undistr.put(new Expression(base),new Expression(inverse?"-("+power+')':power));
-							base="";
-						}else
-						{
-							undistr.put(new Expression(String.valueOf(var)),new Expression(inverse?"-("+power+')':power));;
-							var='\0';
-						}
-					power="";
-					raised=false;
-				}
-			if(!raised)
-				if(General.hasNumber(current))
-					base+=current;
-				else
-					if(current=='^')
-						raised=true;
-					else
-					{
-						if(!base.equals(""))
-						{
-							if(base.equals("-"))
-								base="-1";
-							if(!inverse)
-								coeff=coeff.multiply(new Constant(Double.valueOf(base)));
-							else
-								coeff=coeff.divide(new Constant(Double.valueOf(base)));
-							inverse=false;
-							base="";
-						}
-						if(var!='\0')
-						{
-							addExponent(var,inverse?Constant.NEGATE.clone():Constant.ONE.clone());
-							var='\0';
-						}
-						var=!(current=='*'||current=='/')?current:'\0';
-					}
-			if(current==')')
-				inParentheses--;
-			if((current=='/'||current=='*')&&inParentheses==0)
-				inverse=current=='/';
-		}
-		if(!power.equals("")||!base.equals(""))
-			if(raised)
+			MatchResult base=m.toMatchResult();
+			m.region(m.end(),newTerm.length());
+			m.usePattern(Pattern.compile("\\^-?(?:("+number+")|("+var+")|("+ParenthesesManager.getParen(level)+"))"));
+			ArrayList<MatchResult> expos=new ArrayList<MatchResult>();
+			while(m.lookingAt())
 			{
-				if(power.equals("-"))
-					power="-1";
-				finalPow=new Expression(power);
-				if(finalPow.isConstant())
-					if(base!="")
-					{
-						Constant multi=new Constant(Double.valueOf(base));
-						multi=multi.raise(finalPow.terms.get(0).coeff);
-						if(!inverse)
-							coeff=coeff.multiply(multi);
-						else
-							coeff=coeff.divide(multi);
-						if(base.charAt(0)=='-'&&Math.pow(Double.valueOf(base),finalPow.terms.get(0).coeff.doubleValue())>0)
-							coeff=coeff.negate();
-					}else
-					{
-						if(inverse)
-							finalPow.terms.get(0).coeff=finalPow.terms.get(0).coeff.negate();
-						addExponent(var,finalPow.terms.get(0).coeff);
-						var='\0';
-					}
+				expos.add(m.toMatchResult());
+				m.region(m.end(),newTerm.length());
+			}
+			if(expos.isEmpty())
+			{
+				if(base.group(1)!=null)
+					coeff=coeff.multiply(inverse?Constant.valueOf(base.group(1)).invert():Constant.valueOf(base.group(1)));
+				else if(base.group(2)!=null)
+					addExponent(base.group(2).charAt(0),inverse?Constant.NEGATE:Constant.ONE);
 				else
-					if(base!="")
-						addExponent(new Expression(base),new Expression(inverse?"-("+power+')':power));
+				{
+					String paren=base.group(3);
+					paren=paren.substring(1,paren.length()-1);
+					undistr.put(new Expression(paren),(inverse?Expression.NEGATIVE:Expression.ONE).clone());
+				}
+			}else
+			{
+				Constant pow=Constant.ONE;
+				Expression power=Expression.ONE.clone();
+				for(i=expos.size()-1;i>-1;i--)
+				{
+					MatchResult cur=expos.get(i);
+					boolean negative=cur.group().charAt(1)=='-';
+					if(cur.group(1)!=null)
+					{
+						Constant p=Constant.valueOf(cur.group(1));
+						if(pow!=null)
+						{
+							pow=p.raise(pow);
+							if(negative)
+								pow=pow.negate();
+						}else
+						{
+							power=new Expression(p).raise(power);
+							if(negative)
+								power=power.negate();
+						}
+							
+					}else 
+					{
+						Expression p;
+						if(cur.group(2)!=null)
+							p=new Expression(cur.group(2).charAt(0));
+						else
+						{
+							String paren=cur.group(3);
+							paren.substring(1,paren.length()-1);
+							p=new Expression(paren);
+						}
+						if(pow!=null)
+						{
+							power=p.raise(pow);
+							pow=null;
+						}else
+							power=p.raise(power);
+						if(negative)
+							power=power.negate();
+					}
+				}
+				if(pow!=null)
+					if(base.group(1)!=null)
+						coeff=coeff.multiply(Constant.valueOf(base.group(1)).raise(inverse?pow.negate():pow));
+					else if(base.group(2)!=null)
+						vars.put(base.group(2).charAt(0),inverse?pow.negate():pow);
 					else
 					{
-						addExponent(new Expression(String.valueOf(var)),new Expression(inverse?"-("+power+')':power));
-						var='\0';
+						String paren=base.group(3);
+						paren=paren.substring(1,paren.length()-1);
+						undistr.put(new Expression(paren),new Expression(inverse?pow.negate():pow));
 					}
-			}else
-				if(!inverse)
-					coeff=coeff.multiply(new Constant(Double.valueOf(base)));
-				else
-					coeff=coeff.divide(new Constant(Double.valueOf(base)));
-		if(var!='\0')
-			addExponent(var,new Constant(inverse?-1:1));
+				else 
+				{
+					if(base.group(1)!=null)
+						undistr.put(new Expression(Constant.valueOf(base.group(1))),inverse?power.negate():power);
+					else if(base.group(2)!=null)
+						undistr.put(new Expression(base.group(2).charAt(0)),inverse?power.negate():power);
+					else
+						undistr.put(new Expression(base.group(3)),inverse?power.negate():power);
+				}
+			}
+			if(!m.hitEnd())
+			{
+				if(newTerm.charAt(m.regionStart())=='*')
+				{
+					m.region(m.regionStart()+1,m.regionEnd());
+					inverse=false;
+				}else if(newTerm.charAt(m.regionStart())=='/')
+				{
+					m.region(m.regionStart()+1,m.regionEnd());
+					inverse=true;
+				}else
+					inverse=false;
+				if(newTerm.charAt(m.regionStart())=='-')
+				{
+					coeff=coeff.negate();
+					m.region(m.regionStart()+1,m.regionEnd());
+				}
+			}
+			m.usePattern(b);
+		}
 		simplifyTerm();
 	}
 
@@ -608,46 +627,53 @@ public class Term implements Comparable<Term>,Serializable
 	 */
 	@Override public String toString()
 	{
-		String output="";
+		StringBuffer output=new StringBuffer();
 		if(coeff.compareTo(new Constant())>=0)
-			output+="+";
+			output.append("+");
 		boolean isConst=isConstant();
 		// If the numerator of this term is not 1 or -1, or this term is just 1 or -1, add the numerator of coeff to the start of this term. 
 		// If the numerator is -1 and there are other variables, add a minus sign to the start.
 		if(coeff.numerator==-1&&!isConst)
-				output+="-";
+				output.append("-");
 		else if(coeff.numerator!=1||isConst)
-			output+=coeff.numerator;
+			output.append(coeff.numerator);
 		// Goes through the roots of the coeff, generates the proper char(s) for it and adds them to output.
 		for(Entry<Integer,Constant> current:coeff.roots.entrySet())
 		{
 			if(current.getKey()==2)
-				output+="\u221a";
+				output.append("\u221a");
 			else if(current.getKey()==3)
-				output+="\u221b";
+				output.append("\u221b");
 			else if(current.getKey()==4)
-				output+="\u221c";
+				output.append("\u221c");
 			else
-				output+=(char)(8304+current.getKey())+"\u221a";
-			output+='('+current.getValue().toString()+')';
+				output.append((char)(8304+current.getKey())+"\u221a");
+			output.append('(').append(current.getValue()).append(')');
 		}
 		// Adds all the variables to the output
 		for(Entry<Character,Constant> current:vars.entrySet())
 		{
-			output+=current.getKey();
+			output.append(current.getKey());
 			if(!current.getValue().equals(Constant.ONE))
-				output+="^"+current.getValue();
+				output.append("^").append(current.getValue());
 		}
-		// Goes through all the undistr, and depending on if the base or power isn't a single term, adds parentheses around it.
+		// Goes through all the undistr, and depending on if the base or power isn't a single number or variable, adds parentheses around it.
 		for(Entry<Expression,Expression> current:undistr.entrySet())
-			if(current.getKey().terms.size()>1)
-				output+='('+current.getKey().toString()+")^"+(current.getValue().terms.size()==1?current.getValue().toString():"("+current.getValue()+')');
+		{
+			Term base=current.getKey().terms.get(0);
+			if(current.getKey().terms.size()==1&&base.coeff.denominator==1&&(base.coeff.numerator==1||base.vars.size()==0)&&base.undistr.size()==0)
+				output.append(current.getKey()).append('^');
 			else
-				output+=current.getKey().toString()+'^'+(current.getValue().terms.size()==1?current.getValue().toString():"("+current.getValue()+')');
+				output.append('(').append(current.getKey()).append(")^");
+			Term pow=current.getValue().terms.get(0);
+			if(current.getValue().terms.size()==1&&pow.coeff.denominator==1&&(pow.coeff.numerator==1||pow.vars.size()==0)&&pow.undistr.size()==0)
+				output.append(current.getValue());
+			else
+				output.append('(').append(current.getValue()).append(")");
+		}
 		if(coeff.denominator!=1)
-			output+="/"+coeff.denominator;
+			output.append("/").append(coeff.denominator);
 		// Replaces all of the substitute for the imaginary unit with the characters that represent it.
-		output=output.replace("\u05D0",new String(Character.toChars(120050)));
-		return output;
+		return output.toString().replace("\u05D0",new String(Character.toChars(120050)));
 	}
 }// Glory to God
