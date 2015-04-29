@@ -50,7 +50,7 @@ public class Expression implements Comparable<Expression>,Serializable
 	{
 		terms=new ArrayList<Term>();
 		newExpression=newExpression.replaceAll("\\s","");
-		newExpression=newExpression.replace(new String(Character.toChars(120050)),"\u05D0");
+		newExpression=newExpression.replace(Term.imagUnit,String.valueOf(Term.interImag));
 		String[] split=newExpression.split("=");
 		if(split.length>2)
 			throw new MathFormatException("There are too may \"=\" in the entered String");
@@ -722,14 +722,36 @@ public class Expression implements Comparable<Expression>,Serializable
 	{
 		if(terms.isEmpty())
 			return "0";
-		String output="";
-		for(Term current:terms)
-			output=output+current.toString();
-		if(output.startsWith("+"))
-			output=output.substring(1);
+		StringBuffer output=new StringBuffer();
+		terms.forEach(output::append);
+		if(output.charAt(0)=='+')
+			output.deleteCharAt(0);
 		if(isEquation)
-			output=output+"=0";
-		return output;
+			output.append("=0");
+		return output.toString();
+	}
+	
+	public Expression approx(int places)
+	{
+		Expression retrn=new Expression();
+		retrn.isEquation=isEquation;
+		terms.forEach(t->retrn.add(t.approx(places)));
+		retrn.simplifyTerms();
+		return retrn;
+	}
+	
+	public String approx(boolean fractions,int places)
+	{
+		Expression retrn=approx(places);
+		if(retrn.terms.isEmpty())
+			return "0";
+		StringBuffer output=new StringBuffer();
+		retrn.terms.forEach(s->output.append(s.approx(fractions,places)));
+		if(output.charAt(0)=='+')
+			output.deleteCharAt(0);
+		if(isEquation)
+			output.append("=0");
+		return output.toString();
 	}
 
 	/*

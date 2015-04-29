@@ -47,4 +47,4 @@ class ParenthesesManager
 			levelOfParenTerm.add(Pattern.compile("[+\\-]*"+levelOfParen.get(i).pattern()+"+(?=[+\\-)]|$)"));
 		}
 	}
-}
+}//Glory to God

@@ -1,13 +1,24 @@
 package userIO;
 
+import javax.swing.AbstractSpinnerModel;
+import javax.swing.ImageIcon;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JSlider;
+import javax.swing.JSpinner;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JButton;
 import javax.swing.JToolBar;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.JDialog;
+
+
+
 
 import java.awt.Dimension;
 import java.awt.EventQueue;
@@ -19,6 +30,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.HashSet;
+
+
+
 
 import lang.Expression;
 import lang.Solution;
@@ -40,6 +54,8 @@ public class UserIO extends JFrame implements ActionListener
 	 * Displays solutions and standard form.
 	 */
 	private JTextArea output=new JTextArea();
+	private JComboBox<String> approx;
+	private PrecisionModel digits=new PrecisionModel();
 	/**
 	 * The font to be used for this.
 	 */
@@ -90,16 +106,21 @@ public class UserIO extends JFrame implements ActionListener
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setMinimumSize(new Dimension(450,275));
 		setLayout(new GridBagLayout());
+		GridBagConstraints g=new GridBagConstraints();
 		// Sets up input.
 		input.addActionListener(this);
 		input.setFont(font);
+		g.gridy=0;
+		g.weightx=1;
+		g.fill=GridBagConstraints.BOTH;
 		// Places input on the top left, taking up all extra room horizontally
-		add(input,new GridBagConstraints(0,0,1,1,1,0,GridBagConstraints.CENTER,GridBagConstraints.BOTH,new Insets(0,0,0,0),0,0));
+		add(input,g);
 		// Configures the enter button.
 		JButton enter=new JButton("Enter");
 		enter.addActionListener(this);
+		g.weightx=0;
 		// Places input on the top right, not taking up extra room
-		add(enter,new GridBagConstraints(1,0,1,1,0,0,GridBagConstraints.CENTER,GridBagConstraints.BOTH,new Insets(0,0,0,0),0,0));
+		add(enter,g);
 		// Makes a row of buttons, and adds the button for the imaginary number.
 		JToolBar buttons=new JToolBar();
 		buttons.setFloatable(false);
@@ -109,8 +130,17 @@ public class UserIO extends JFrame implements ActionListener
 		imag.setFont(font);
 		buttons.add(imag);
 		buttons.addSeparator();
+		
+		JButton pi=new JButton("\u03c0");
+		pi.addActionListener(new InsertString("\u03c0"));
+		pi.setFont(font);
+		buttons.add(pi);
+		g.gridx=0;
+		g.gridy=1;
+		g.gridwidth=2;
+		g.weightx=1;
 		// Adds the toolbar going across the middle of the window.
-		add(buttons,new GridBagConstraints(0,1,2,1,1,0,GridBagConstraints.CENTER,GridBagConstraints.BOTH,new Insets(0,0,0,0),0,0));
+		add(buttons,g);
 		// Sets up the output box.
 		output.setEditable(false);
 		output.setFont(font);
@@ -138,7 +168,8 @@ public class UserIO extends JFrame implements ActionListener
 							+"com.\n\n\tUpdates will come periodically, to receive them send an email to yesennes@gmail.com requesting to be put on the ema"
 							+"il list. Upcoming features include support for functions such as sine, better display with fractions actually stacked, bett"
 							+"er input with superscript and \u221as, factoring and solving of more complex expression, constants like \u03c0 and "+new String(Character.toChars(0x1d4ee))
-							+" and a button for approximate answers. If you would like to see any other features,"+" send an email to yesennes@gmail.com.");
+							+" and a button for approximate answers. If you would like to see any other features, send an email to yesennes@gmail.com."
+							+ "\n\n\tP.S. I am still trying to think of a good name for this program. Any suggustions would be welcome.");
 			helpArea.setLineWrap(true);
 			output.setWrapStyleWord(true);
 			helpArea.setFont(font);
@@ -147,6 +178,70 @@ public class UserIO extends JFrame implements ActionListener
 			helper.setMinimumSize(new Dimension(500,510));
 			helper.setVisible(true);
 		});
+		
+		JDialog set=new JDialog(this,"Settings");
+		set.setLayout(new GridBagLayout());
+		
+		g.gridx=GridBagConstraints.RELATIVE;
+		g.gridy=0;
+		g.weightx=0;
+		g.gridwidth=1;
+		g.fill=GridBagConstraints.NONE;
+		set.add(new JLabel("Mode:"),g);
+		
+		JSpinner precision=new JSpinner(digits);
+		JLabel descrip=new JLabel("All non-rational numbers will be kept in as mathmatical constants and exponents.");
+		
+		approx=new JComboBox<String>(new String[]{"Exact","Approximate"});
+		approx.addActionListener(e->{
+			if(approx.getSelectedItem().equals("Exact"))
+			{
+				digits.setValue(-1);
+				precision.setEnabled(false);
+				descrip.setText("All non-rational numbers will be kept in as mathmatical constants and exponents.");
+			}else
+			{
+				precision.setEnabled(true);
+				descrip.setText("All non-rational numbers will be approximated to "+digits.getValue()+" places after the decimal.");
+			}
+		});
+		g.weightx=1;
+		g.fill=GridBagConstraints.HORIZONTAL;
+		set.add(approx,g);
+		
+		g.gridx=0;
+		g.gridy=1;
+		g.weightx=0;
+		g.fill=GridBagConstraints.NONE;
+		set.add(new JLabel("Precision:"),g);
+		
+		digits.setValue(-1);
+		precision.addChangeListener(e->{
+			if(digits.getNumber().intValue()!=-1)
+				descrip.setText("All non-rational numbers will be approximated to "+digits.getValue()+" places after the decimal.");
+		});
+		g.gridx=1;
+		g.weightx=1;
+		g.fill=GridBagConstraints.HORIZONTAL;
+		set.add(precision,g);
+		
+		g.gridy=2;
+		g.gridx=0;
+		g.gridwidth=2;
+		g.weighty=1;
+		set.add(descrip,g);
+		
+		
+		JButton settings=new JButton("Settings"/*new ImageIcon("gear.png")*/);
+		settings.addActionListener(e->set.setVisible(true));
+		g.gridx=0;
+		g.gridy=2;
+		g.gridwidth=1;
+		g.weightx=1;
+		g.weighty=1;
+		g.anchor=GridBagConstraints.SOUTHWEST;
+		g.fill=GridBagConstraints.NONE;
+		add(settings,g);
 		// Both help and output in the same place, with the help in the bottom right corner not resizing, and the output taking up all the room.
 		// Adds output last so help is on top.
 		add(help,new GridBagConstraints(0,2,2,1,1,1,GridBagConstraints.SOUTHEAST,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
@@ -187,6 +282,56 @@ public class UserIO extends JFrame implements ActionListener
 			a.printStackTrace();
 		}
 		output.repaint();
+	}
+
+	/**
+	 * @author Luke Senseney
+	 *
+	 */
+	public class PrecisionModel extends AbstractSpinnerModel
+	{
+		private static final long serialVersionUID=1L;
+		SpinnerNumberModel nums=new SpinnerNumberModel(-1,-1,Integer.MAX_VALUE,1);
+		
+		public PrecisionModel()
+		{
+		}
+		
+		@Override public Object getValue()
+		{
+			if(nums.getNumber().intValue()==-1)
+				return "Fractions";
+			return nums.getValue();
+		}
+
+		/* (non-Javadoc)
+		 * @see javax.swing.SpinnerModel#setValue(java.lang.Object)
+		 */
+		@Override public void setValue(Object value)
+		{
+			nums.setValue(value);
+		}
+
+		/* (non-Javadoc)
+		 * @see javax.swing.SpinnerModel#getNextValue()
+		 */
+		@Override public Object getNextValue()
+		{
+			return nums.getNextValue();
+		}
+
+		/* (non-Javadoc)
+		 * @see javax.swing.SpinnerModel#getPreviousValue()
+		 */
+		@Override public Object getPreviousValue()
+		{
+			return nums.getPreviousValue();
+		}
+		
+		public Number getNumber()
+		{
+			return nums.getNumber();
+		}
 	}
 
 	// Adds a String to the end of input when fired.

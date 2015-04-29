@@ -39,7 +39,10 @@ public class Term implements Comparable<Term>,Serializable
 	/**
 	 * Term with no Variables, and a coefficient of -1.
 	 */
-	public static Term NEGATE=new Term(Constant.NEGATE);
+	public final static Term NEGATE=new Term(Constant.NEGATE);
+	public final static char PI='\u03c0';
+	public final static String imagUnit=new String(Character.toChars(120050));
+	final static char interImag='\u05D0';
 	
 	//public HashSet<Expression> restrictions=new HashSet<Expression>();
 
@@ -70,6 +73,7 @@ public class Term implements Comparable<Term>,Serializable
 	public Term(String newTerm,int level)
 	{
 		this(Constant.ONE);
+		newTerm=newTerm.replace(imagUnit,String.valueOf(interImag));
 		int neg=0,i=0;
 		for(;newTerm.charAt(i)=='-'||newTerm.charAt(i)=='+';i++)
 			if(newTerm.charAt(i)=='-')
@@ -275,10 +279,10 @@ public class Term implements Comparable<Term>,Serializable
 		if(inRoot!=null&&inRoot.numerator<0)
 		{
 			coeff.roots.get(new Constant(2)).numerator*=-1;
-			addExponent('\u05D0',Constant.ONE);
+			addExponent(interImag,Constant.ONE);
 		}
 		// Looks at the power of i for anything that can be simplified. i.e. takes i^2 and turns it to -1.
-		Constant imaginary=vars.get('\u05D0');
+		Constant imaginary=vars.get(interImag);
 		if(imaginary!=null)
 			switch((int)imaginary.numerator%4)
 			{
@@ -494,8 +498,8 @@ public class Term implements Comparable<Term>,Serializable
 	@Override public int compareTo(Term o)
 	{
 		// Compares terms in a somewhat arbitrary order, first by which has the highest power, then by each power, then by undistr.
-		Constant varMax=General.max(vars.values());
-		Constant oVarMax=General.max(o.vars.values());
+		Constant varMax=Collections.max(vars.values());
+		Constant oVarMax=Collections.max(o.vars.values());
 		if(varMax!=null)
 		{
 			int compare=varMax.compareTo(oVarMax);
@@ -675,5 +679,87 @@ public class Term implements Comparable<Term>,Serializable
 			output.append("/").append(coeff.denominator);
 		// Replaces all of the substitute for the imaginary unit with the characters that represent it.
 		return output.toString().replace("\u05D0",new String(Character.toChars(120050)));
+	}
+
+	/**
+	 * @param fractions
+	 * @param places
+	 * @return 
+	 */
+	public Object approx(boolean fractions,int places)
+	{
+		StringBuffer output=new StringBuffer();
+		if(coeff.compareTo(new Constant())>=0)
+			output.append("+");
+		boolean isConst=isConstant();
+		// If the numerator of this term is not 1 or -1, or this term is just 1 or -1, add the numerator of coeff to the start of this term. 
+		// If the numerator is -1 and there are other variables, add a minus sign to the start.
+		if(coeff.numerator==-1&&!isConst&&(fractions||coeff.denominator==1))
+				output.append("-");
+		else if(coeff.numerator!=1||isConst)
+			if(fractions)
+				output.append(coeff.numerator);
+			else
+				output.append(General.round(coeff.doubleValue(),places));
+		// Goes through the roots of the coeff, generates the proper char(s) for it and adds them to output.
+		for(Entry<Integer,Constant> current:coeff.roots.entrySet())
+		{
+			switch(current.getKey())
+			{
+				case 2:
+					output.append("\u221a");
+					break;
+				case 3:
+					output.append("\u221b");
+					break;
+				case 4:
+					output.append("\u221c");
+					break;
+				default:
+					output.append((char)(8304+current.getKey())+"\u221a");
+					
+			}
+			output.append('(').append(current.getValue()).append(')');
+		}
+		// Adds all the variables to the output
+		for(Entry<Character,Constant> current:vars.entrySet())
+		{
+			output.append(current.getKey());
+			if(!current.getValue().equals(Constant.ONE))
+				output.append("^").append(current.getValue());
+		}
+		// Goes through all the undistr, and depending on if the base or power isn't a single number or variable, adds parentheses around it.
+		for(Entry<Expression,Expression> current:undistr.entrySet())
+		{
+			Term base=current.getKey().terms.get(0);
+			if(current.getKey().terms.size()==1&&base.coeff.denominator==1&&(base.coeff.numerator==1||base.vars.size()==0)&&base.undistr.size()==0)
+				output.append(current.getKey().approx(fractions,places)).append('^');
+			else
+				output.append('(').append(current.getKey().approx(fractions,places)).append(")^");
+			Term pow=current.getValue().terms.get(0);
+			if(current.getValue().terms.size()==1&&pow.coeff.denominator==1&&(pow.coeff.numerator==1||pow.vars.size()==0)&&pow.undistr.size()==0)
+				output.append(current.getValue().approx(fractions,places));
+			else
+				output.append('(').append(current.getValue().approx(fractions,places)).append(")");
+		}
+		if(coeff.denominator!=1&&fractions)
+			output.append("/").append(coeff.denominator);
+		// Replaces all of the substitute for the imaginary unit with the characters that represent it.
+		return output.toString().replace(String.valueOf(interImag),imagUnit);
+	}
+	
+	public Term approx(int places)
+	{
+		Term retrn=clone();
+		Constant power=vars.remove(PI);
+		if(power!=null)
+			coeff=coeff.multiply(new Constant(Math.pow(General.round(Math.PI,places),power.doubleValue())));
+		retrn.coeff.roots.forEach((base,pow)->retrn.coeff=coeff.multiply(new Constant(General.round(Math.pow(base,pow.doubleValue()),places))));
+		retrn.coeff.roots.clear();
+		TreeMap<Expression,Expression> m=new TreeMap<Expression,Expression>();
+		retrn.undistr.forEach((base,pow)->m.put(base.approx(places),pow.approx(places)));
+		retrn.undistr=m;
+		retrn.simplifyTerm();
+		return retrn;
 	}
 }// Glory to God
