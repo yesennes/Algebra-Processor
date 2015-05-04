@@ -1,13 +1,15 @@
 package lang;
 
+import java.util.ArrayList;
+
 /**
  * Unused
  * @author Luke Senseney
  */
 public class SystemEquations
 {// Start class
-	private Expression[] equations=new Expression[0];
-	@SuppressWarnings("unused") private Solution[] solutions=new Solution[0];
+	private ArrayList<Expression> equations=new ArrayList<Expression>();
+	@SuppressWarnings("unused") private ArrayList<Solution> solutions=new ArrayList<Solution>();
 
 	public SystemEquations()
 	{
@@ -20,6 +22,6 @@ public class SystemEquations
 
 	public void addEquation(String newEquation)
 	{// Start addEquation
-		this.equations=General.addToArray(new Expression(newEquation),this.equations);
+		equations.add(new Expression(newEquation));
 	}
 }// Glory to God

@@ -1,24 +1,17 @@
 package userIO;
 
 import javax.swing.AbstractSpinnerModel;
-import javax.swing.ImageIcon;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JSlider;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JButton;
 import javax.swing.JToolBar;
-import javax.swing.SpinnerNumberModel;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.JDialog;
-
-
-
 
 import java.awt.Dimension;
 import java.awt.EventQueue;
@@ -34,8 +27,14 @@ import java.util.HashSet;
 
 
 
+
+
+
 import lang.Expression;
+import lang.MathFormatException;
+import lang.OverflowException;
 import lang.Solution;
+import lang.Term;
 
 /**
  * The default GUI for the AlgebraProcessor.
@@ -63,7 +62,7 @@ public class UserIO extends JFrame implements ActionListener
 	/**
 	 * A String holding the imaginary unit, i.
 	 */
-	private final String imagUnit=new String(Character.toChars(120050));
+	private static final String imagUnit=Term.IMAG_UNIT;
 
 	/**
 	 * Launch the application.
@@ -130,11 +129,18 @@ public class UserIO extends JFrame implements ActionListener
 		imag.setFont(font);
 		buttons.add(imag);
 		buttons.addSeparator();
-		
-		JButton pi=new JButton("\u03c0");
-		pi.addActionListener(new InsertString("\u03c0"));
+		//Sets up the button for \u03c0.
+		JButton pi=new JButton(String.valueOf(Term.PI));
+		pi.addActionListener(new InsertString(String.valueOf(Term.PI)));
 		pi.setFont(font);
 		buttons.add(pi);
+		buttons.addSeparator();
+		//Sets up the button for e.
+		JButton e=new JButton(Term.E);
+		e.addActionListener(new InsertString(Term.E));
+		e.setFont(font);
+		buttons.add(e);
+		
 		g.gridx=0;
 		g.gridy=1;
 		g.gridwidth=2;
@@ -159,7 +165,7 @@ public class UserIO extends JFrame implements ActionListener
 							+"he \"^\" to enter exponents. To take the nth root of a number, raise it to 1/n. For instance, to take the square root of x, e"
 							+"nter \"x^(1/2)\". To enter "+imagUnit+", the imaginary unit, press the buttion with "+imagUnit
 							+" on it. If "+imagUnit+" is showing up as a "+new String(Character.toChars(0x1F700))+" to you, t"
-							+"hen your computer doesn't have the font Cambria Math on it. Simply pretend squares are the imaginary unit. Later versions wil"
+							+"hen your computer doesn't have the font Cambria Math on it. Simply pretend squares are the imaginary unit. The same holds true for the mathmatical constant e. Later versions wil"
 							+"l remove dependency on Cambria Math. It ignores whitespace, but will treat other, non-letter symbols like \"!\" as variables."
 							+"\n\n\tCurrently it its capable of simplifying about anything, factoring out gcd and factoring quadratics. It can solve quadrat"
 							+"ics and 2 step equations.\n\n\tGarbage in, Garbage out; currently, if you enter an"
@@ -178,46 +184,52 @@ public class UserIO extends JFrame implements ActionListener
 			helper.setMinimumSize(new Dimension(500,510));
 			helper.setVisible(true);
 		});
-		
+		//Sets up the dialog box for settings.
 		JDialog set=new JDialog(this,"Settings");
+		set.setMinimumSize(new Dimension(500,150));
 		set.setLayout(new GridBagLayout());
-		
+		//Adds the mode label
 		g.gridx=GridBagConstraints.RELATIVE;
 		g.gridy=0;
 		g.weightx=0;
 		g.gridwidth=1;
 		g.fill=GridBagConstraints.NONE;
 		set.add(new JLabel("Mode:"),g);
-		
-		JSpinner precision=new JSpinner(digits);
+		//Creates the label to explain the approximation mode.
 		JLabel descrip=new JLabel("All non-rational numbers will be kept in as mathmatical constants and exponents.");
-		
+		//Creates the dropdown selection of mode.
 		approx=new JComboBox<String>(new String[]{"Exact","Approximate"});
-		approx.addActionListener(e->{
+		//Sets up the selection box for rounding.
+		JSpinner precision=new JSpinner(digits);
+		precision.setEnabled(false);
+		//When approx changes, notifies precision.
+		approx.addActionListener(event->{
 			if(approx.getSelectedItem().equals("Exact"))
 			{
-				digits.setValue(-1);
+				digits.setValue(digits.getNumber());
 				precision.setEnabled(false);
-				descrip.setText("All non-rational numbers will be kept in as mathmatical constants and exponents.");
 			}else
 			{
 				precision.setEnabled(true);
-				descrip.setText("All non-rational numbers will be approximated to "+digits.getValue()+" places after the decimal.");
+				digits.setValue(digits.getNumber());
 			}
 		});
 		g.weightx=1;
 		g.fill=GridBagConstraints.HORIZONTAL;
 		set.add(approx,g);
-		
+		//Adds the label for precision.
 		g.gridx=0;
 		g.gridy=1;
 		g.weightx=0;
 		g.fill=GridBagConstraints.NONE;
 		set.add(new JLabel("Precision:"),g);
-		
-		digits.setValue(-1);
-		precision.addChangeListener(e->{
-			if(digits.getNumber().intValue()!=-1)
+		//When precision changes, corrects descrip.
+		precision.addChangeListener(event->{
+			if(approx.getSelectedItem().equals("Exact"))
+				descrip.setText("All non-rational numbers will be kept in as mathmatical constants and exponents.");
+			else if(digits.getNextValue().intValue()==0)
+				descrip.setText("All non-rational numbers will be approximated to the nearest whole number");
+			else
 				descrip.setText("All non-rational numbers will be approximated to "+digits.getValue()+" places after the decimal.");
 		});
 		g.gridx=1;
@@ -230,22 +242,24 @@ public class UserIO extends JFrame implements ActionListener
 		g.gridwidth=2;
 		g.weighty=1;
 		set.add(descrip,g);
-		
-		
+		//Sets up the button for settings.
 		JButton settings=new JButton("Settings"/*new ImageIcon("gear.png")*/);
-		settings.addActionListener(e->set.setVisible(true));
+		settings.addActionListener(event->set.setVisible(true));
 		g.gridx=0;
 		g.gridy=2;
-		g.gridwidth=1;
+		g.gridwidth=2;
 		g.weightx=1;
 		g.weighty=1;
 		g.anchor=GridBagConstraints.SOUTHWEST;
 		g.fill=GridBagConstraints.NONE;
+		//Help, settings and output in the same place, with the help in the bottom right corner not resizing, and the output taking up all the room.
 		add(settings,g);
-		// Both help and output in the same place, with the help in the bottom right corner not resizing, and the output taking up all the room.
+		g.anchor=GridBagConstraints.SOUTHEAST;
+		add(help,g);
 		// Adds output last so help is on top.
-		add(help,new GridBagConstraints(0,2,2,1,1,1,GridBagConstraints.SOUTHEAST,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-		add(output,new GridBagConstraints(0,2,2,1,1,1,GridBagConstraints.CENTER,GridBagConstraints.BOTH,new Insets(0,0,0,0),0,0));
+		g.anchor=GridBagConstraints.CENTER;
+		g.fill=GridBagConstraints.BOTH;
+		add(output,g);
 	}
 
 	/**
@@ -257,12 +271,13 @@ public class UserIO extends JFrame implements ActionListener
 		try
 		{
 			// Creates an Expression and factors it, then if it is a equation, solves it.
+			boolean appro=approx.getSelectedItem().equals("Exact");
 			Expression exp=new Expression(input.getText());
-			output.setText("Standand Form:"+exp.toString()+"\n");
+			output.setText("Standand Form:"+(appro?exp:exp.approx().toStringDecimal(digits.getNumber()))+"\n");
 			output.append("Factored:");
 			ArrayList<Expression> facts=exp.factor();
 			for(Expression fact:facts)
-				output.append("("+fact+")");
+				output.append("("+(appro?fact:fact.approx().toStringDecimal(digits.getNumber()))+")");
 			if(exp.isEquation)
 				output.append("=0");
 			output.append("\n");
@@ -274,11 +289,21 @@ public class UserIO extends JFrame implements ActionListener
 					output.append(" Was not able to solve");
 				else
 					for(Solution current:sols)
-						output.append(current.toString()+"\n                    ");
+						output.append((appro?current:current.approx(digits.getNumber()))+"\n                    ");
 			}
-		}catch(Exception a)
+		}catch(MathFormatException format)
 		{
-			output.append(" An error occured. Please email what you entered to yesennes@gmail.com");
+			output.setWrapStyleWord(true);
+			output.setText("There was an error in your formatting. "+format.getMessage()+" If you think what you entered was formatted correctly, please email what you entered to yesennes@gmail.com");
+		}catch(OverflowException over)
+		{
+			output.setWrapStyleWord(true);
+			output.setText("A number was to big. "+over.getMessage());
+		}
+		catch(Exception a)
+		{
+			output.setWrapStyleWord(true);
+			output.setText("An error occured. Please email what you entered to yesennes@gmail.com");
 			a.printStackTrace();
 		}
 		output.repaint();
@@ -286,12 +311,12 @@ public class UserIO extends JFrame implements ActionListener
 
 	/**
 	 * @author Luke Senseney
-	 *
+	 * A model to show the precision, or Fractions when appropriate.
 	 */
 	public class PrecisionModel extends AbstractSpinnerModel
 	{
 		private static final long serialVersionUID=1L;
-		SpinnerNumberModel nums=new SpinnerNumberModel(-1,-1,Integer.MAX_VALUE,1);
+		Integer value=3;
 		
 		public PrecisionModel()
 		{
@@ -299,25 +324,36 @@ public class UserIO extends JFrame implements ActionListener
 		
 		@Override public Object getValue()
 		{
-			if(nums.getNumber().intValue()==-1)
+			if(approx.getSelectedItem()=="Exact")
 				return "Fractions";
-			return nums.getValue();
+			return value;
 		}
 
 		/* (non-Javadoc)
 		 * @see javax.swing.SpinnerModel#setValue(java.lang.Object)
 		 */
-		@Override public void setValue(Object value)
+		@Override public void setValue(Object newValue)
 		{
-			nums.setValue(value);
+			try
+			{
+				Integer v=(Integer)newValue;
+				if(v.intValue()<0)
+					value=0;
+				else
+					value=v;
+				fireStateChanged();
+			}catch(ClassCastException e)
+			{
+				throw new IllegalArgumentException();
+			}
 		}
 
 		/* (non-Javadoc)
 		 * @see javax.swing.SpinnerModel#getNextValue()
 		 */
-		@Override public Object getNextValue()
+		@Override public Integer getNextValue()
 		{
-			return nums.getNextValue();
+			return value+1;
 		}
 
 		/* (non-Javadoc)
@@ -325,16 +361,20 @@ public class UserIO extends JFrame implements ActionListener
 		 */
 		@Override public Object getPreviousValue()
 		{
-			return nums.getPreviousValue();
+			return value.equals(0)?-1:value-1;
 		}
 		
-		public Number getNumber()
+		public Integer getNumber()
 		{
-			return nums.getNumber();
+			return value;
 		}
 	}
 
-	// Adds a String to the end of input when fired.
+	/**
+	 * Adds a String to the end of input when fired.
+	 * @author Luke Senseney
+	 *
+	 */
 	private class InsertString implements ActionListener
 	{
 		private String insert;

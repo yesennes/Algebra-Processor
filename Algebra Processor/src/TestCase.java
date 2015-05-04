@@ -5,19 +5,25 @@ import java.util.HashSet;
 import lang.Expression;
 import lang.NotEquation;
 import lang.Solution;
+import lang.Term;
 
 /**
  * @author Luke Senseney
  */
 class TestCase
 {
+	static ArrayList<String> cases=new ArrayList<String>();
+	static ArrayList<String> standard=new ArrayList<String>();
+	static ArrayList<String> factored=new ArrayList<String>();
+	static ArrayList<String> solutions=new ArrayList<String>();
+	static ArrayList<String> casesRound=new ArrayList<String>();
+	static ArrayList<String> standardRound=new ArrayList<String>();
+	static String imag=Term.IMAG_UNIT;
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args)
 	{
-		final String imag=new String(Character.toChars(120050));
-		ArrayList<String> cases=new ArrayList<String>();
 		Collections.addAll(cases,"z^2-5z+6=0",
 				"5a^2-3a+9=36",
 				"x^2=36",
@@ -40,12 +46,10 @@ class TestCase
 				"2^(a-1)^2",
 				"2^(a-1)^a",
 				"3x(5+9(x-10)^2)");
-		ArrayList<String> standard=new ArrayList<String>();
 		Collections.addAll(standard,"z^2-5z+6=0","5a^2-3a-27=0","x^2-36=0","5x^3-4x^2+x=0","X^2=0",
 				"-132=0","x=0","x^2-3x+10=0","X^2+5=0","X^2+x-132=0","x^2-x-132=0",
 				"6m+888888888=0","x^5+32=0","5x/2-4=0","x^2+6x+45=0","(x+3)^(1/2)+36=0","5x+4=0",
 				"512","64","2^(a^2-2a+1)","2^((a-1)^a)","27x^3-540x^2+2715x");
-		ArrayList<String> factored=new ArrayList<String>();
 		Collections.addAll(factored,"[z-2, z-3]",
 				"[a+3\u221a(61)/10-3/10, a-3/10-3\u221a(61)/10]",
 				"[x+6, x-6]",
@@ -68,7 +72,6 @@ class TestCase
 				"[2^(a^2-2a+1)]",
 				"[2^((a-1)^a)]",
 				"[3x, x+\u221a(5)"+imag+"/3-10, x-\u221a(5)"+imag+"/3-10]");
-		ArrayList<String> solutions=new ArrayList<String>();
 		Collections.addAll(solutions,"z=3 or 2,",
 				"a=3/10-3\u221a(61)/10 or 3\u221a(61)/10+3/10,",
 				"x=6 or -6,",
@@ -86,62 +89,102 @@ class TestCase
 				,"x=1293,"
 				,"x=-4/5,"
 				,"","","","","");
-		for(int i=0;i<cases.size();i++)
+		Collections.addAll(casesRound,
+				String.valueOf(Term.PI),
+				Term.PI+"+2^(1/2)",
+				Term.PI+"x+2^(1/2)=0",
+				"2^"+Term.PI);
+		Collections.addAll(standardRound,
+				"3.142",
+				"4.556",
+				"3.142x+1.414=0",
+				"8.825");
+		for(int i=0;i<cases.size()&&test(i);i++);
+		for(int i=0;i<casesRound.size()&&testRound(i);i++);
+	}
+	
+	public static boolean test(int i)
+	{
+		try
 		{
+			Expression test=new Expression(cases.get(i));
 			try
 			{
-				Expression test=new Expression(cases.get(i));
-				try
+				if(!test.toString().equals(standard.get(i)))
 				{
-					if(!test.toString().equals(standard.get(i)))
-					{
-						System.out.println(i+": "+cases.get(i)+" read as: "+test.toString().replace(imag,"i"));
-						break;
-					}
-				}catch(Exception e)
-				{
-					System.out.println(i+": "+"On "+cases.get(i)+" toString() produced:");
-					e.printStackTrace();
-					break;
-				}
-				try
-				{
-					if(!test.factor().toString().equals(factored.get(i)))
-					{
-						System.out.println(i+": "+cases.get(i)+" factored as: "+test.factor().toString().replace(imag,"i")+" but should have factored to "+factored.get(i));
-						break;
-					}
-				}catch(Exception e)
-				{
-					System.out.println(i+": "+"On "+cases.get(i)+" factor() produced:");
-					e.printStackTrace();
-					break;
-				}
-				{
-					String s;
-					try
-					{
-						HashSet<Solution> sol=test.solve();
-						StringBuffer b=new StringBuffer();
-						for(Solution so:sol)
-							b.append(so).append(',');
-						s=b.toString();
-					}catch(NotEquation e)
-					{
-						s="";
-					}
-					if(!s.equals(solutions.get(i)))
-					{
-						System.out.println(i+": "+cases.get(i)+" solved as "+s.toString().replace(imag,"i")+" but should have solved as "+solutions.get(i).toString().replace(imag,"i"));
-						break;
-					}
+					System.out.println(i+": "+cases.get(i)+" read as: "+test.toString().replace(imag,"i"));
+					return false;
 				}
 			}catch(Exception e)
 			{
-				System.out.println(i+": "+cases.get(i)+" Produced an error reading:");
+				System.out.println(i+": "+"On "+cases.get(i)+" toString() produced:");
 				e.printStackTrace();
-				break;
+				return false;
 			}
+			try
+			{
+				if(!test.factor().toString().equals(factored.get(i)))
+				{
+					System.out.println(i+": "+cases.get(i)+" factored as: "+test.factor().toString().replace(imag,"i")+" but should have factored to "+factored.get(i));
+					return false;
+				}
+			}catch(Exception e)
+			{
+				System.out.println(i+": "+"On "+cases.get(i)+" factor() produced:");
+				e.printStackTrace();
+				return false;
+			}
+			{
+				String s;
+				try
+				{
+					HashSet<Solution> sol=test.solve();
+					StringBuffer b=new StringBuffer();
+					for(Solution so:sol)
+						b.append(so).append(',');
+					s=b.toString();
+				}catch(NotEquation e)
+				{
+					s="";
+				}
+				if(!s.equals(solutions.get(i)))
+				{
+					System.out.println(i+": "+cases.get(i)+" solved as "+s.toString().replace(imag,"i")+" but should have solved as "+solutions.get(i).toString().replace(imag,"i"));
+					return false;
+				}
+			}
+		}catch(Exception e)
+		{
+			System.out.println(i+": "+cases.get(i)+" Produced an error reading:");
+			e.printStackTrace();
+			return false;
 		}
+		return true;
+	}
+	public static boolean testRound(int i)
+	{
+		try
+		{
+			Expression test=new Expression(cases.get(i));
+			try
+			{
+				if(!test.approx().toStringDecimal(3).equals(standard.get(i)))
+				{
+					System.out.println(i+": "+cases.get(i)+" read as: "+test.approx().toStringDecimal(3).replace(imag,"i"));
+					return false;
+				}
+			}catch(Exception e)
+			{
+				System.out.println(i+": "+"On "+cases.get(i)+" approx(false,2) produced:");
+				e.printStackTrace();
+				return false;
+			}
+		}catch(Exception e)
+		{
+			System.out.println(i+": "+cases.get(i)+" Produced an error reading:");
+			e.printStackTrace();
+			return false;
+		}
+		return true;
 	}
 }

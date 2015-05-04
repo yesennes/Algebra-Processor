@@ -1,8 +1,5 @@
 package lang;
 
-import java.util.Arrays;
-import java.util.Collection;
-
 /**
  * Class that provides methods for dealing with arrays, text and numbers.
  * 

@@ -1,6 +1,8 @@
 package lang;
 
 import java.io.Serializable;
+import java.math.BigInteger;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -16,9 +18,7 @@ import java.util.regex.Pattern;
 
 /**
  * Class representing a mathematical term.
- * 
  * @author Luke Senseney
- * 
  */
 public class Term implements Comparable<Term>,Serializable
 {
@@ -32,33 +32,75 @@ public class Term implements Comparable<Term>,Serializable
 	 */
 	public TreeMap<Character,Constant> vars;
 	/**
-	 * A Map to represent things which can't be distributed, such as (x+3)^(1/2), each key is raised to its 
-	 * value and then multiplied into this.
+	 * A Map to represent things which can't be distributed, such as (x+3)^(1/2), each key is raised to its value and then multiplied into this.
 	 */
 	public TreeMap<Expression,Expression> undistr;
 	/**
 	 * Term with no Variables, and a coefficient of -1.
 	 */
 	public final static Term NEGATE=new Term(Constant.NEGATE);
+	/**
+	 * The character to use for \u03c0.
+	 */
 	public final static char PI='\u03c0';
-	public final static String imagUnit=new String(Character.toChars(120050));
-	final static char interImag='\u05D0';
-	
-	//public HashSet<Expression> restrictions=new HashSet<Expression>();
+	/*
+	 * The String to use for e.
+	 */
+	public final static String E=new String(Character.toChars(0x1d4ee));
+	/*
+	 * The String to use for i, the \u221a(-1).
+	 */
+	public final static String IMAG_UNIT=new String(Character.toChars(0x1d4f2));
+	/*
+	 * Internally, i will be kept as this.
+	 */
+	final static char interImag='\u05d0';
+	/*
+	 * Internally, e will be kept as this.
+	 */
+	final static char interE='\u05d1';
 
-	private static int findLevel(String term)
+	// public HashSet<Expression> restrictions=new HashSet<Expression>();
+	/**
+	 * Used to find the level of parentheses in a String representing a term. Also checks that this term is formatted correctly.
+	 * @param term The String to find the level of parentheses in.
+	 * @return The levels of parentheses in term.
+	 * @throws MathFormatException If term is not formatted correctly.
+	 */
+	private static int findLevel(String term) throws MathFormatException
 	{
+		// Finds out how many levels of parentheses are in this equation, throwing errors if parentheses don't match.
+		int inParen=0;
+		int max=0;
+		for(char c:term.toCharArray())
+			if(c=='(')
+			{
+				inParen++;
+				if(inParen>max)
+					max=inParen;
+			}else if(c==')')
+			{
+				inParen--;
+				if(inParen<0)
+					throw new MathFormatException("There is an unmatched close parenthese.");
+			}
+		if(inParen!=0)
+			throw new MathFormatException("There is an unmatched start parenthese.");
+		//Checks term is a correctly formatted term.
 		Matcher m=ParenthesesManager.getTerm(0).matcher(term);
 		int level=0;
 		for(;!m.matches();level++)
+		{
+			if(level+1>max)
+				throw new MathFormatException("The input is not a term.");
 			m.usePattern(ParenthesesManager.getTerm(level+1));
+		}
 		return level;
 	}
-	
+
 	/**
-	 * Creates a new Term from a String. Garbage in, Garbage out; if the String is not a correctly
-	 * formated Term, will attempt to read.
-	 * 
+	 * Creates a new Term from a String. Garbage in, Garbage out; if the String is not a correctly formated Term, will attempt to read.
+	 * Cannot read \u221a, use ^(1/2).
 	 * @param newTerm the String to make a Term from.
 	 */
 	public Term(String newTerm)
@@ -67,13 +109,16 @@ public class Term implements Comparable<Term>,Serializable
 	}
 
 	/**
-	 * @param newTerm
-	 * @param findLevel
+	 * Creates a new term from newTerm, when the levels of parentheses are known
+	 * @param newTerm The String to be turned into a term.
+	 * @param findLevel The level of parentheses in newTerm.
+	 * @throws MathFormatException If newTerm is not formatted correctly or findLevel is lower than the level of parentheses.
 	 */
-	public Term(String newTerm,int level)
+	public Term(String newTerm,int level) throws MathFormatException
 	{
 		this(Constant.ONE);
-		newTerm=newTerm.replace(imagUnit,String.valueOf(interImag));
+		newTerm=newTerm.replace(IMAG_UNIT,String.valueOf(interImag));
+		newTerm=newTerm.replace(E,String.valueOf(interE));
 		int neg=0,i=0;
 		for(;newTerm.charAt(i)=='-'||newTerm.charAt(i)=='+';i++)
 			if(newTerm.charAt(i)=='-')
@@ -86,120 +131,124 @@ public class Term implements Comparable<Term>,Serializable
 		Pattern b=Pattern.compile("("+number+")|("+var+")|("+ParenthesesManager.getParen(level)+")");
 		Matcher m=b.matcher(newTerm);
 		boolean inverse=false;
-		while(m.lookingAt())
+		try
 		{
-			MatchResult base=m.toMatchResult();
-			m.region(m.end(),newTerm.length());
-			m.usePattern(Pattern.compile("\\^-?(?:("+number+")|("+var+")|("+ParenthesesManager.getParen(level)+"))"));
-			ArrayList<MatchResult> expos=new ArrayList<MatchResult>();
 			while(m.lookingAt())
 			{
-				expos.add(m.toMatchResult());
+				MatchResult base=m.toMatchResult();
 				m.region(m.end(),newTerm.length());
-			}
-			if(expos.isEmpty())
-			{
-				if(base.group(1)!=null)
-					coeff=coeff.multiply(inverse?Constant.valueOf(base.group(1)).invert():Constant.valueOf(base.group(1)));
-				else if(base.group(2)!=null)
-					addExponent(base.group(2).charAt(0),inverse?Constant.NEGATE:Constant.ONE);
-				else
+				m.usePattern(Pattern.compile("\\^-?(?:("+number+")|("+var+")|("+ParenthesesManager.getParen(level)+"))"));
+				ArrayList<MatchResult> expos=new ArrayList<MatchResult>();
+				while(m.lookingAt())
 				{
-					String paren=base.group(3);
-					paren=paren.substring(1,paren.length()-1);
-					undistr.put(new Expression(paren),(inverse?Expression.NEGATIVE:Expression.ONE).clone());
+					expos.add(m.toMatchResult());
+					m.region(m.end(),newTerm.length());
 				}
-			}else
-			{
-				Constant pow=Constant.ONE;
-				Expression power=Expression.ONE.clone();
-				for(i=expos.size()-1;i>-1;i--)
+				if(expos.isEmpty())
 				{
-					MatchResult cur=expos.get(i);
-					boolean negative=cur.group().charAt(1)=='-';
-					if(cur.group(1)!=null)
-					{
-						Constant p=Constant.valueOf(cur.group(1));
-						if(pow!=null)
-						{
-							pow=p.raise(pow);
-							if(negative)
-								pow=pow.negate();
-						}else
-						{
-							power=new Expression(p).raise(power);
-							if(negative)
-								power=power.negate();
-						}
-							
-					}else 
-					{
-						Expression p;
-						if(cur.group(2)!=null)
-							p=new Expression(cur.group(2).charAt(0));
-						else
-						{
-							String paren=cur.group(3);
-							paren.substring(1,paren.length()-1);
-							p=new Expression(paren);
-						}
-						if(pow!=null)
-						{
-							power=p.raise(pow);
-							pow=null;
-						}else
-							power=p.raise(power);
-						if(negative)
-							power=power.negate();
-					}
-				}
-				if(pow!=null)
 					if(base.group(1)!=null)
-						coeff=coeff.multiply(Constant.valueOf(base.group(1)).raise(inverse?pow.negate():pow));
+						coeff=coeff.multiply(inverse?Constant.valueOf(base.group(1)).invert():Constant.valueOf(base.group(1)));
 					else if(base.group(2)!=null)
-						vars.put(base.group(2).charAt(0),inverse?pow.negate():pow);
+						addExponent(base.group(2).charAt(0),inverse?Constant.NEGATE:Constant.ONE);
 					else
 					{
 						String paren=base.group(3);
 						paren=paren.substring(1,paren.length()-1);
-						undistr.put(new Expression(paren),new Expression(inverse?pow.negate():pow));
+						undistr.put(new Expression(paren),(inverse?Expression.NEGATIVE:Expression.ONE).clone());
 					}
-				else 
-				{
-					if(base.group(1)!=null)
-						undistr.put(new Expression(Constant.valueOf(base.group(1))),inverse?power.negate():power);
-					else if(base.group(2)!=null)
-						undistr.put(new Expression(base.group(2).charAt(0)),inverse?power.negate():power);
-					else
-						undistr.put(new Expression(base.group(3)),inverse?power.negate():power);
-				}
-			}
-			if(!m.hitEnd())
-			{
-				if(newTerm.charAt(m.regionStart())=='*')
-				{
-					m.region(m.regionStart()+1,m.regionEnd());
-					inverse=false;
-				}else if(newTerm.charAt(m.regionStart())=='/')
-				{
-					m.region(m.regionStart()+1,m.regionEnd());
-					inverse=true;
 				}else
-					inverse=false;
-				if(newTerm.charAt(m.regionStart())=='-')
 				{
-					coeff=coeff.negate();
-					m.region(m.regionStart()+1,m.regionEnd());
+					Constant pow=Constant.ONE;
+					Expression power=Expression.ONE.clone();
+					for(i=expos.size()-1;i>-1;i--)
+					{
+						MatchResult cur=expos.get(i);
+						boolean negative=cur.group().charAt(1)=='-';
+						if(cur.group(1)!=null)
+						{
+							Constant p=Constant.valueOf(cur.group(1));
+							if(pow!=null)
+							{
+								pow=p.raise(pow);
+								if(negative)
+									pow=pow.negate();
+							}else
+							{
+								power=new Expression(p).raise(power);
+								if(negative)
+									power=power.negate();
+							}
+						}else
+						{
+							Expression p;
+							if(cur.group(2)!=null)
+								p=new Expression(cur.group(2).charAt(0));
+							else
+							{
+								String paren=cur.group(3);
+								paren.substring(1,paren.length()-1);
+								p=new Expression(paren);
+							}
+							if(pow!=null)
+							{
+								power=p.raise(pow);
+								pow=null;
+							}else
+								power=p.raise(power);
+							if(negative)
+								power=power.negate();
+						}
+					}
+					if(pow!=null)
+						if(base.group(1)!=null)
+							coeff=coeff.multiply(Constant.valueOf(base.group(1)).raise(inverse?pow.negate():pow));
+						else if(base.group(2)!=null)
+							vars.put(base.group(2).charAt(0),inverse?pow.negate():pow);
+						else
+						{
+							String paren=base.group(3);
+							paren=paren.substring(1,paren.length()-1);
+							undistr.put(new Expression(paren),new Expression(inverse?pow.negate():pow));
+						}
+					else
+					{
+						if(base.group(1)!=null)
+							undistr.put(new Expression(Constant.valueOf(base.group(1))),inverse?power.negate():power);
+						else if(base.group(2)!=null)
+							undistr.put(new Expression(base.group(2).charAt(0)),inverse?power.negate():power);
+						else
+							undistr.put(new Expression(base.group(3)),inverse?power.negate():power);
+					}
 				}
+				if(!m.hitEnd())
+				{
+					if(newTerm.charAt(m.regionStart())=='*')
+					{
+						m.region(m.regionStart()+1,m.regionEnd());
+						inverse=false;
+					}else if(newTerm.charAt(m.regionStart())=='/')
+					{
+						m.region(m.regionStart()+1,m.regionEnd());
+						inverse=true;
+					}else
+						inverse=false;
+					if(newTerm.charAt(m.regionStart())=='-')
+					{
+						coeff=coeff.negate();
+						m.region(m.regionStart()+1,m.regionEnd());
+					}
+				}
+				m.usePattern(b);
 			}
-			m.usePattern(b);
+			simplifyTerm();
+		}catch(IllegalStateException e)
+		{
+			throw new MathFormatException(newTerm+" is not formatted correctly.");
 		}
-		simplifyTerm();
 	}
 
 	/**
 	 * Creates a new Term from a Constant and an map of variables.
-	 * 
 	 * @param newCoeff Constant that becomes the coefficient of the Term.
 	 * @param newVars Map that becomes the variables of the Term.
 	 */
@@ -210,7 +259,6 @@ public class Term implements Comparable<Term>,Serializable
 
 	/**
 	 * Creates a new Term from a Constant.
-	 * 
 	 * @param newCoeff the Constant that becomes the coefficient of the new Term.
 	 */
 	public Term(Constant newCoeff)
@@ -222,10 +270,9 @@ public class Term implements Comparable<Term>,Serializable
 
 	/**
 	 * Creates a new Term from a Constant, map of variables, and a map of Expressions.
-	 * 
 	 * @param newCoeff Constant that becomes the coefficient of the Term.
 	 * @param newVars Map that becomes the variables of the Term.
-	 * @param newUndistr Map of Expression that becomes 
+	 * @param newUndistr Map of Expression that becomes
 	 */
 	public Term(Constant newCoeff,Map<Character,Constant> newVars,Map<Expression,Expression> newUndistr)
 	{
@@ -245,7 +292,8 @@ public class Term implements Comparable<Term>,Serializable
 	}
 
 	/**
-	 * Combines variables and bases that are the same and adds powers of these.
+	 * Combines variables and bases that are the same and adds powers of these. Moves some things out of undistr and into the coeff and
+	 * vars. Note: does nothing with (x+1)^2 and other similar evaluable undistrs because they turn into multiple Terms.
 	 */
 	public void simplifyTerm()
 	{
@@ -262,13 +310,18 @@ public class Term implements Comparable<Term>,Serializable
 				toBe=toBe.multiply(current.getKey().terms.get(0).raise(current.getValue().terms.get(0).coeff));
 				iter.remove();
 				removed=true;
+				//Does Euler's Identity
+			}else if(current.getKey().equals(new Expression(Term.interE))&&current.getValue().equals(new Expression(Term.interImag).multiply(new Expression(Term.PI))))
+			{
+				iter.remove();
+				coeff=coeff.negate();
 			}
 		}
 		Collection<Expression> removeFrom=undistr.values();
 		// Removes all pairs in undistr with an power of zero.
 		while(removeFrom.remove(Expression.ZERO));
 		if(removed)
-		{ 
+		{
 			toBe=toBe.multiply(this);
 			coeff=toBe.coeff;
 			vars=toBe.vars;
@@ -276,28 +329,28 @@ public class Term implements Comparable<Term>,Serializable
 		}
 		// Looks in the coeff to see if any (-1)^(1/2) can be turned in to i.
 		Constant inRoot=coeff.roots.get(new Constant(2));
-		if(inRoot!=null&&inRoot.numerator<0)
+		if(inRoot!=null&&inRoot.numerator.compareTo(BigInteger.ZERO)<0)
 		{
-			coeff.roots.get(new Constant(2)).numerator*=-1;
+			coeff.roots.get(new Constant(2)).numerator=coeff.roots.get(new Constant(2)).numerator.negate();
 			addExponent(interImag,Constant.ONE);
 		}
 		// Looks at the power of i for anything that can be simplified. i.e. takes i^2 and turns it to -1.
 		Constant imaginary=vars.get(interImag);
 		if(imaginary!=null)
-			switch((int)imaginary.numerator%4)
+			switch(imaginary.numerator.mod(BigInteger.valueOf(4)).intValue())
 			{
 				case 0:
-					imaginary.numerator=0;
+					imaginary.numerator=BigInteger.ZERO;
 					break;
 				case 1:
-					imaginary.numerator=1;
+					imaginary.numerator=BigInteger.ONE;
 					break;
 				case 2:
-					imaginary.numerator=0;
+					imaginary.numerator=BigInteger.ZERO;
 					coeff=coeff.negate();
 					break;
 				case 3:
-					imaginary.numerator=1;
+					imaginary.numerator=BigInteger.ONE;
 					coeff=coeff.negate();
 			}
 		Collection<Constant> values=vars.values();
@@ -314,7 +367,6 @@ public class Term implements Comparable<Term>,Serializable
 
 	/**
 	 * Checks to see if two terms are like Terms.
-	 * 
 	 * @param a A Term to check if is like.
 	 * @param b The other Term to check if is like.
 	 * @return If the Terms are like, true, else false.
@@ -326,7 +378,6 @@ public class Term implements Comparable<Term>,Serializable
 
 	/**
 	 * Adds exponent to the current exponent of var. simplifyTerm() may need to be called after this.
-	 * 
 	 * @param var The variable to change the exponent of
 	 * @param exponent The exponent to be added to var.
 	 */
@@ -337,7 +388,6 @@ public class Term implements Comparable<Term>,Serializable
 
 	/**
 	 * Adds all of the value in toAdd to the value of the corresponding key
-	 * 
 	 * @param toAdd values to be added
 	 */
 	void addExponents(Map<Character,Constant> toAdd)
@@ -349,7 +399,6 @@ public class Term implements Comparable<Term>,Serializable
 
 	/**
 	 * Adds power to the current exponent of base. simplifyTerm() may need to be called after this.
-	 * 
 	 * @param base The expression to change the exponent of
 	 * @param power The exponent to be added to base.
 	 */
@@ -360,7 +409,6 @@ public class Term implements Comparable<Term>,Serializable
 
 	/**
 	 * Adds all of the values in toAdd to the value of the corresponding key
-	 * 
 	 * @param toAdd values to be added
 	 */
 	void addExponent(Map<Expression,Expression> toAdd)
@@ -372,7 +420,6 @@ public class Term implements Comparable<Term>,Serializable
 
 	/**
 	 * Finds the greatest common denominator of two terms.
-	 * 
 	 * @param a A Term to find the gcd of.
 	 * @param b The other Term to find the gcd of.
 	 * @return A Term which is the gcd of the a and b.
@@ -419,49 +466,56 @@ public class Term implements Comparable<Term>,Serializable
 
 	/**
 	 * Gets the greatest common denominator of a Term array.
-	 * 
 	 * @param a the Term array to find the gcd of.
 	 * @return a Term which is the gcd of a.
 	 */
 	public static Term gcd(Term[] a)
 	{
 		Term newTerm=a[0];
-		for(Term current:Arrays.copyOfRange(a,1,a.length))
-			newTerm=Term.gcd(current,newTerm);
+		for(int i=1;i<a.length;i++)
+			newTerm=Term.gcd(a[i],newTerm);
 		return newTerm;
 	}
 
 	/**
 	 * Gets the greatest common denominator of a list of Term.
-	 * 
 	 * @param a the Term array to find the gcd of.
 	 * @return a Term which is the gcd of a.
 	 */
 	public static Term gcd(Iterable<Term> a)
 	{
-		Term newTerm=null;
-		for(Term current:a)
-			if(newTerm==null)
-				newTerm=current;
-			else
-				newTerm=Term.gcd(current,newTerm);
-		return newTerm==null?new Term(new Constant()):newTerm;
+		Iterator<Term> i=a.iterator();
+		if(!i.hasNext())
+			return new Term(Constant.ONE);
+		Term newTerm=i.next();
+		while(i.hasNext())
+			newTerm=Term.gcd(i.next(),newTerm);
+		return newTerm;
 	}
 
 	/**
 	 * Checks if two Terms equal each other.
-	 * 
 	 * @param a Term to check if this is equal to.
 	 * @return If the Terms are equal, true, else false.
 	 */
 	@Override public boolean equals(Object other)
 	{
-		Term a=(Term)other;
-		return coeff.equals(a.coeff)&&Term.isLikeTerm(this,a);
+		if(other instanceof Term)
+		{
+			Term a=(Term)other;
+			return coeff.equals(a.coeff)&&Term.isLikeTerm(this,a);
+		}else if(other instanceof Expression)
+		{
+			Expression a=(Expression)other;
+			return a.terms.size()==1&&a.terms.get(0).equals(this);
+		}else if(other instanceof Constant)
+			return isConstant()&&coeff.equals(other);
+		return false;
 	}
-	
+
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override public int hashCode()
@@ -471,6 +525,7 @@ public class Term implements Comparable<Term>,Serializable
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#clone()
 	 */
 	@Override public Term clone()
@@ -483,7 +538,6 @@ public class Term implements Comparable<Term>,Serializable
 
 	/**
 	 * Checks if the Term is a constant
-	 * 
 	 * @return if the Term is an constant, true, else false.
 	 */
 	public boolean isConstant()
@@ -493,13 +547,14 @@ public class Term implements Comparable<Term>,Serializable
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Comparable#compareTo(java.lang.Object)
 	 */
 	@Override public int compareTo(Term o)
 	{
 		// Compares terms in a somewhat arbitrary order, first by which has the highest power, then by each power, then by undistr.
-		Constant varMax=Collections.max(vars.values());
-		Constant oVarMax=Collections.max(o.vars.values());
+		Constant varMax=vars.isEmpty()?null:Collections.max(vars.values());
+		Constant oVarMax=o.vars.isEmpty()?null:Collections.max(o.vars.values());
 		if(varMax!=null)
 		{
 			int compare=varMax.compareTo(oVarMax);
@@ -527,9 +582,8 @@ public class Term implements Comparable<Term>,Serializable
 			}
 			if(oVar.hasNext())
 				return 1;
-		}else
-			if(oVarMax!=null)
-				return 1;
+		}else if(oVarMax!=null)
+			return 1;
 		if(o.undistr.size()>undistr.size())
 			return 1;
 		Iterator<Entry<Expression,Expression>> oUndis=o.undistr.entrySet().iterator();
@@ -552,7 +606,6 @@ public class Term implements Comparable<Term>,Serializable
 
 	/**
 	 * Multiplies two Terms.
-	 * 
 	 * @param a A Term to multiply.
 	 * @param b The other Term to multiply.
 	 * @return A Term which is the product of a and b.
@@ -565,7 +618,7 @@ public class Term implements Comparable<Term>,Serializable
 		a.addExponent(b.undistr);
 		return a;
 	}
-	
+
 	/**
 	 * @param divisor What this is to be divided by
 	 * @return this/divisor
@@ -574,17 +627,17 @@ public class Term implements Comparable<Term>,Serializable
 	{
 		return multiply(divisor.negate());
 	}
-	
+
 	/**
 	 * @return -this
 	 */
 	public Term negate()
 	{
 		Term c=clone();
-		c.coeff=c.coeff.multiply(Constant.NEGATE);
+		c.coeff=c.coeff.negate();
 		return c;
 	}
-	
+
 	/**
 	 * @return 1/this
 	 */
@@ -592,7 +645,7 @@ public class Term implements Comparable<Term>,Serializable
 	{
 		return raise(Constant.NEGATE);
 	}
-	
+
 	/**
 	 * Raises a Term to a Constant
 	 * @param a the term to be the base
@@ -602,6 +655,7 @@ public class Term implements Comparable<Term>,Serializable
 	public Term raise(Constant b)
 	{
 		Term a=clone();
+		//raises all parts of this to b
 		a.coeff=a.coeff.raise(b);
 		for(Entry<Character,Constant> current:a.vars.entrySet())
 			current.setValue(current.getValue().multiply(b));
@@ -613,7 +667,6 @@ public class Term implements Comparable<Term>,Serializable
 
 	/**
 	 * Gets all variables in this.
-	 * 
 	 * @return A HashSet with the variables in this, no duplicates.
 	 */
 	public HashSet<Character> getVars()
@@ -622,11 +675,15 @@ public class Term implements Comparable<Term>,Serializable
 		for(Expression current:undistr.keySet())
 			for(Term curTerm:current.terms)
 				var.addAll(curTerm.vars.keySet());
+		var.remove(interImag);
+		var.remove(interE);
+		var.remove(PI);
 		return var;
 	}
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#toString()
 	 */
 	@Override public String toString()
@@ -635,11 +692,11 @@ public class Term implements Comparable<Term>,Serializable
 		if(coeff.compareTo(new Constant())>=0)
 			output.append("+");
 		boolean isConst=isConstant();
-		// If the numerator of this term is not 1 or -1, or this term is just 1 or -1, add the numerator of coeff to the start of this term. 
+		// If the numerator of this term is not 1 or -1, or this term is just 1 or -1, add the numerator of coeff to the start of this term.
 		// If the numerator is -1 and there are other variables, add a minus sign to the start.
-		if(coeff.numerator==-1&&!isConst)
-				output.append("-");
-		else if(coeff.numerator!=1||isConst)
+		if(coeff.numerator.equals(BigInteger.ONE.negate())&&!isConst)
+			output.append("-");
+		else if(!coeff.numerator.equals(BigInteger.ONE)||isConst)
 			output.append(coeff.numerator);
 		// Goes through the roots of the coeff, generates the proper char(s) for it and adds them to output.
 		for(Entry<Integer,Constant> current:coeff.roots.entrySet())
@@ -665,42 +722,41 @@ public class Term implements Comparable<Term>,Serializable
 		for(Entry<Expression,Expression> current:undistr.entrySet())
 		{
 			Term base=current.getKey().terms.get(0);
-			if(current.getKey().terms.size()==1&&base.coeff.denominator==1&&(base.coeff.numerator==1||base.vars.size()==0)&&base.undistr.size()==0)
+			if(current.getKey().terms.size()==1&&base.coeff.denominator.equals(BigInteger.ONE)&&(base.coeff.numerator.equals(BigInteger.ONE)||base.vars.size()==0)&&base.undistr.size()==0)
 				output.append(current.getKey()).append('^');
 			else
 				output.append('(').append(current.getKey()).append(")^");
 			Term pow=current.getValue().terms.get(0);
-			if(current.getValue().terms.size()==1&&pow.coeff.denominator==1&&(pow.coeff.numerator==1||pow.vars.size()==0)&&pow.undistr.size()==0)
+			if(current.getValue().terms.size()==1&&pow.coeff.denominator.equals(BigInteger.ONE)&&(pow.coeff.numerator.equals(BigInteger.ONE)||pow.vars.size()==0)&&pow.undistr.size()==0)
 				output.append(current.getValue());
 			else
 				output.append('(').append(current.getValue()).append(")");
 		}
-		if(coeff.denominator!=1)
+		if(!coeff.denominator.equals(BigInteger.ONE))
 			output.append("/").append(coeff.denominator);
-		// Replaces all of the substitute for the imaginary unit with the characters that represent it.
-		return output.toString().replace("\u05D0",new String(Character.toChars(120050)));
+		// Replaces all of the substitute for the imaginary unit and e with the characters that represent it.
+		return output.toString().replace(String.valueOf(interImag),IMAG_UNIT).replace(String.valueOf(interE),E);
 	}
 
 	/**
-	 * @param fractions
-	 * @param places
-	 * @return 
+	 * Returns a String representation of this, but with decimals rounded to places rather than fractions.
+	 * @param places Number of places to round to.
+	 * @return The approximation of this.
 	 */
-	public Object approx(boolean fractions,int places)
+	public String toStringDecimal(int places)
 	{
+		NumberFormat format=NumberFormat.getNumberInstance();
+		format.setMaximumFractionDigits(places);
 		StringBuffer output=new StringBuffer();
 		if(coeff.compareTo(new Constant())>=0)
 			output.append("+");
 		boolean isConst=isConstant();
-		// If the numerator of this term is not 1 or -1, or this term is just 1 or -1, add the numerator of coeff to the start of this term. 
+		// If the numerator of this term is not 1 or -1, or this term is just 1 or -1, add the numerator of coeff to the start of this term.
 		// If the numerator is -1 and there are other variables, add a minus sign to the start.
-		if(coeff.numerator==-1&&!isConst&&(fractions||coeff.denominator==1))
-				output.append("-");
-		else if(coeff.numerator!=1||isConst)
-			if(fractions)
-				output.append(coeff.numerator);
-			else
-				output.append(General.round(coeff.doubleValue(),places));
+		if(coeff.numerator.equals(BigInteger.ONE.negate())&&!isConst&&coeff.denominator.equals(BigInteger.ONE))
+			output.append("-");
+		else if(!coeff.numerator.equals(BigInteger.ONE)||isConst)
+			output.append(format.format(coeff.doubleValue()));
 		// Goes through the roots of the coeff, generates the proper char(s) for it and adds them to output.
 		for(Entry<Integer,Constant> current:coeff.roots.entrySet())
 		{
@@ -717,7 +773,6 @@ public class Term implements Comparable<Term>,Serializable
 					break;
 				default:
 					output.append((char)(8304+current.getKey())+"\u221a");
-					
 			}
 			output.append('(').append(current.getValue()).append(')');
 		}
@@ -732,34 +787,52 @@ public class Term implements Comparable<Term>,Serializable
 		for(Entry<Expression,Expression> current:undistr.entrySet())
 		{
 			Term base=current.getKey().terms.get(0);
-			if(current.getKey().terms.size()==1&&base.coeff.denominator==1&&(base.coeff.numerator==1||base.vars.size()==0)&&base.undistr.size()==0)
-				output.append(current.getKey().approx(fractions,places)).append('^');
+			if(current.getKey().terms.size()==1&&base.coeff.denominator.equals(BigInteger.ONE)&&(base.coeff.numerator.equals(BigInteger.ONE)||base.vars.size()==0)&&base.undistr.size()==0)
+				output.append(current.getKey().toStringDecimal(places)).append('^');
 			else
-				output.append('(').append(current.getKey().approx(fractions,places)).append(")^");
+				output.append('(').append(current.getKey().toStringDecimal(places)).append(")^");
 			Term pow=current.getValue().terms.get(0);
-			if(current.getValue().terms.size()==1&&pow.coeff.denominator==1&&(pow.coeff.numerator==1||pow.vars.size()==0)&&pow.undistr.size()==0)
-				output.append(current.getValue().approx(fractions,places));
+			if(current.getValue().terms.size()==1&&pow.coeff.denominator.equals(BigInteger.ONE)&&(pow.coeff.numerator.equals(BigInteger.ONE)||pow.vars.size()==0)&&pow.undistr.size()==0)
+				output.append(current.getValue().toStringDecimal(places));
 			else
-				output.append('(').append(current.getValue().approx(fractions,places)).append(")");
+				output.append('(').append(current.getValue().toStringDecimal(places)).append(")");
 		}
-		if(coeff.denominator!=1&&fractions)
-			output.append("/").append(coeff.denominator);
 		// Replaces all of the substitute for the imaginary unit with the characters that represent it.
-		return output.toString().replace(String.valueOf(interImag),imagUnit);
+		return output.toString().replace(String.valueOf(interImag),IMAG_UNIT);
 	}
-	
-	public Term approx(int places)
+
+	/**
+	 * @return This but with \u03c0, e and all roots approximated to decimals.
+	 */
+	public Term approx()
 	{
 		Term retrn=clone();
-		Constant power=vars.remove(PI);
-		if(power!=null)
-			coeff=coeff.multiply(new Constant(Math.pow(General.round(Math.PI,places),power.doubleValue())));
-		retrn.coeff.roots.forEach((base,pow)->retrn.coeff=coeff.multiply(new Constant(General.round(Math.pow(base,pow.doubleValue()),places))));
-		retrn.coeff.roots.clear();
 		TreeMap<Expression,Expression> m=new TreeMap<Expression,Expression>();
-		retrn.undistr.forEach((base,pow)->m.put(base.approx(places),pow.approx(places)));
+		//Goes through eache undistr and approxiamtes it.
+		retrn.undistr.forEach((base,pow)->{
+			Expression b=base.approx();
+			Expression p=pow.approx();
+			if(b.isConstant()&&p.isConstant())
+				retrn.coeff=retrn.coeff.multiply(new Constant(Math.pow(b.terms.get(0).coeff.doubleValue(),p.terms.get(0).coeff.doubleValue())));
+			else
+				m.put(b,p);
+		});
 		retrn.undistr=m;
 		retrn.simplifyTerm();
+		//double to be multiplied into this.
+		double appro=1;
+		//multiplies approximation of \u03c0 and e into appro
+		Constant power=retrn.vars.remove(PI);
+		if(power!=null)
+			appro*=Math.pow(Math.PI,power.doubleValue());
+		power=retrn.vars.remove(interE);
+		if(power!=null)
+			appro*=Math.pow(Math.E,power.doubleValue());
+		//approximates all of the roots.
+		for(Map.Entry<Integer,Constant> cur:retrn.coeff.roots.entrySet())
+			appro*=Math.pow(cur.getValue().doubleValue(),1./cur.getKey());
+		retrn.coeff.roots.clear();
+		retrn.coeff=retrn.coeff.multiply(new Constant(appro));
 		return retrn;
 	}
 }// Glory to God

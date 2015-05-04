@@ -1,6 +1,7 @@
 package lang;
 
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -43,36 +44,72 @@ public class Expression implements Comparable<Expression>,Serializable
 
 	/**
 	 * Creates a new Expression from a string. If there is a "=" in the string isEquation is true. Cannot handle equations with more than one "=" i.e. a=b=c. Garbage in, Garbage out, if the String is not a correctly formated expression or equation,
-	 * will attempt to read or throw exception.
+	 * will attempt to read or throw exception. Cannot read \u221a, use ^(1/2).
 	 * @param newExpression The string to make a equation from.
+	 * @throws MathFormatException if newExpression is not formatted correctly.
 	 */
 	public Expression(String newExpression) throws MathFormatException
 	{
 		terms=new ArrayList<Term>();
-		newExpression=newExpression.replaceAll("\\s","");
-		newExpression=newExpression.replace(Term.imagUnit,String.valueOf(Term.interImag));
+		// Removes all white space and replaces i and e with their proper character.
+		newExpression=newExpression.replaceAll("\\s","").replace(Term.IMAG_UNIT,String.valueOf(Term.interImag)).replace(Term.E,String.valueOf(Term.interE));
 		String[] split=newExpression.split("=");
 		if(split.length>2)
 			throw new MathFormatException("There are too may \"=\" in the entered String");
+		// Parses the left side of this equation or all of this expression
 		terms=notEquation(split[0]).terms;
+		// Subtracts the left side of this equation from the right.
 		if(split.length>1)
 		{
 			terms=subtract(notEquation(split[1])).terms;
 			isEquation=true;
 		}else
+			// Calls simplify terms if subtract is not called. Subtract calls simplifyTerms itself.
 			simplifyTerms();
 	}
 
-	private static Expression notEquation(String s)
+	/**
+	 * Changes a string which contains no "=" into an Expression.
+	 * @param s String to turn into an Expression.
+	 * @return The Expression represented by s.
+	 * @throws MathFormatException If s is not formatted correctly.
+	 */
+	private static Expression notEquation(String s) throws MathFormatException
 	{
+		// Finds out how many levels of parentheses are in this equation, throwing errors if parentheses don't match.
+		int inParen=0;
+		int max=0;
+		for(char c:s.toCharArray())
+			if(c=='(')
+			{
+				inParen++;
+				if(inParen>max)
+					max=inParen;
+			}else if(c==')')
+			{
+				inParen--;
+				if(inParen<0)
+					throw new MathFormatException("There is an unmatched close parenthese.");
+			}
+		if(inParen!=0)
+			throw new MathFormatException("There is an unmatched start parenthese.");
 		Expression retrn=new Expression();
+		// Separates into terms. It is impossible to make a regex pattern in java that matches an arbitrary number (please notify me if it isn't) of levels of parentheses
+		// so it starts from 0 and steps up.
 		Matcher findParen=ParenthesesManager.getTerm(0).matcher(s);
+		// Each iteration finds one term.
 		while(!findParen.hitEnd())
 		{
+			// Looks for the level of parentheses for the next term.
 			int i=0;
 			findParen.usePattern(ParenthesesManager.getTerm(0));
 			for(;!findParen.lookingAt();i++)
+			{
+				if(i+1>max)
+					throw new MathFormatException("There is an error in your formatting starting somewhere near the start of "+s.substring(findParen.regionStart()));
 				findParen.usePattern(ParenthesesManager.getTerm(i+1));
+			}
+			// Adds the term to the equation.
 			retrn.terms.add(new Term(findParen.group(),i));
 			findParen.region(findParen.end(),s.length());
 		}
@@ -88,6 +125,10 @@ public class Expression implements Comparable<Expression>,Serializable
 		this(Arrays.asList(newTerms));
 	}
 
+	/**
+	 * Creates an Expression from a constant.
+	 * @param c The constant to be made into an equation.
+	 */
 	public Expression(Constant c)
 	{
 		terms=new ArrayList<Term>(Collections.singletonList(new Term(c)));
@@ -115,7 +156,8 @@ public class Expression implements Comparable<Expression>,Serializable
 	}
 
 	/**
-	 * @param charAt
+	 * Creates a new expression from a character.
+	 * @param var The char to be made into an equation.
 	 */
 	public Expression(char var)
 	{
@@ -167,15 +209,15 @@ public class Expression implements Comparable<Expression>,Serializable
 			return ONE.clone();
 		Expression retrn=clone();
 		// Multiply expression by itself one times 1 less than the absolute value of the numerator of pow.
-		for(long i=Math.abs(pow.numerator);i>1;i--)
+		for(BigInteger i=pow.numerator.abs();i.compareTo(BigInteger.ONE)>0;i=i.subtract(BigInteger.ONE))
 			retrn=retrn.multiply(this);
 		// If pow is negative or it has a denominator, this cannot be distributed, so it needs to be in the undistr of a Term. This packages
 		// it into a term
-		if(pow.numerator<0||pow.denominator>1)
+		if(pow.numerator.compareTo(BigInteger.ZERO)<0||pow.denominator.compareTo(BigInteger.ONE)>0)
 		{
 			TreeMap<Expression,Expression> d=new TreeMap<Expression,Expression>();
 			// sets the numerator of pow to 1 or -1 depending on sign.
-			pow.numerator=pow.numerator<0?-1:1;
+			pow.numerator=pow.numerator.compareTo(BigInteger.ZERO)<0?BigInteger.ONE.negate():BigInteger.ONE;
 			d.put(retrn,new Expression(new Term(pow)));
 			return new Expression(new Term(Constant.ONE.clone(),new TreeMap<Character,Constant>(),d));
 		}
@@ -259,6 +301,11 @@ public class Expression implements Comparable<Expression>,Serializable
 		return add(toSubtract.negate());
 	}
 
+	/**
+	 * Subtracts a Term from this.
+	 * @param toSubtract the Term to be subtracted
+	 * @return this-toSubract. Should contain no references to this or toSubtract.
+	 */
 	public Expression subtract(Term toSubtract)
 	{
 		return add(toSubtract.multiply(Term.NEGATE));
@@ -326,7 +373,8 @@ public class Expression implements Comparable<Expression>,Serializable
 			while(iter.hasNext())
 			{
 				Entry<Expression,Expression> current=iter.next();
-				if(current.getValue().isConstant()&&(current.getValue().terms.get(0).coeff.denominator==1||current.getValue().terms.get(0).coeff.numerator>1))
+				if(current.getValue().isConstant()
+						&&(current.getValue().terms.get(0).coeff.denominator.equals(BigInteger.ONE)||current.getValue().terms.get(0).coeff.numerator.compareTo(BigInteger.ONE)>0))
 				{
 					iter.remove();
 					terms.addAll(new Expression(terms.get(i)).multiply(current.getKey().raise(current.getValue().terms.get(0).coeff)).terms);
@@ -698,16 +746,23 @@ public class Expression implements Comparable<Expression>,Serializable
 	 */
 	@Override public boolean equals(Object a)
 	{
-		try
+		//Sees if a is either an Expression, Term or Constant and checks equality with each.
+		if(a instanceof Expression)
 		{
 			Expression b=(Expression)a;
 			return terms.equals(b.terms)&&isEquation==b.isEquation;
-		}catch(ClassCastException e)
-		{
-			return false;
-		}
+		}else if(a instanceof Term)
+			return terms.size()==1&&terms.get(0).equals(a);
+		else if(a instanceof Constant)
+			return isConstant()&&terms.get(0).coeff.equals(a);
+		return false;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#hashCode()
+	 */
 	@Override public int hashCode()
 	{
 		return terms.hashCode()<<1|(isEquation?1:0);
@@ -723,30 +778,41 @@ public class Expression implements Comparable<Expression>,Serializable
 		if(terms.isEmpty())
 			return "0";
 		StringBuffer output=new StringBuffer();
+		//Appends each Term to the String.
 		terms.forEach(output::append);
+		//Removes the plus sign from the first Term if present.
 		if(output.charAt(0)=='+')
 			output.deleteCharAt(0);
 		if(isEquation)
 			output.append("=0");
 		return output.toString();
 	}
-	
-	public Expression approx(int places)
+
+	/**
+	 * Replaces \u03c0 and e with their corresponding value and approximates all square roots.
+	 * @return An approximation of this
+	 */
+	public Expression approx()
 	{
 		Expression retrn=new Expression();
 		retrn.isEquation=isEquation;
-		terms.forEach(t->retrn.add(t.approx(places)));
+		//Returns the approximation of each Term simplified.
+		terms.forEach(t->retrn.terms.add(t.approx()));
 		retrn.simplifyTerms();
 		return retrn;
 	}
-	
-	public String approx(boolean fractions,int places)
+
+	/**
+	 * @param places decimal places to round to.
+	 * @return A String representation of this with decimals rounded to places rather than fractions.
+	 */
+	public String toStringDecimal(int places)
 	{
-		Expression retrn=approx(places);
-		if(retrn.terms.isEmpty())
+		if(terms.isEmpty())
 			return "0";
 		StringBuffer output=new StringBuffer();
-		retrn.terms.forEach(s->output.append(s.approx(fractions,places)));
+		//Appends the approximation of each term to the String.
+		terms.forEach(s->output.append(s.toStringDecimal(places)));
 		if(output.charAt(0)=='+')
 			output.deleteCharAt(0);
 		if(isEquation)
@@ -767,17 +833,26 @@ public class Expression implements Comparable<Expression>,Serializable
 	}
 
 	/**
+	 * Class to sort Terms by the power of a certain variable.
 	 * @author Luke Senseney
 	 */
 	public static final class SortByChar implements Comparator<Term>
 	{
 		char sortBy;
 
+		/**
+		 * Creates a new SortByChar
+		 * @param sort The character whose power to sort by.
+		 */
 		SortByChar(char sort)
 		{
 			sortBy=sort;
 		}
 
+		/*
+		 * (non-Javadoc)
+		 * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)
+		 */
 		@Override public int compare(Term o1,Term o2)
 		{
 			Constant c1=o1.vars.get(sortBy);

@@ -67,7 +67,19 @@ public class Solution implements Serializable
 	{
 		String rtn=letter+"=";
 		for(Expression current:value)
-			rtn+=current.toString()+" or ";
+			rtn+=current+" or ";
+		return rtn.substring(0,rtn.length()-4);
+	}
+	
+	/**
+	 * @param places decimal places to round to.
+	 * @return A String representation of this with decimals rounded to places rather than fractions and \u03c0, e and roots rouned to decimals.
+	 */
+	public String approx(int places)
+	{
+		String rtn=letter+"=";
+		for(Expression current:value)
+			rtn+=current.approx().toStringDecimal(places)+" or ";
 		return rtn.substring(0,rtn.length()-4);
 	}
 }// Glory to God
