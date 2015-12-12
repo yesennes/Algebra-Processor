@@ -15,7 +15,7 @@ import java.util.TreeMap;
  */
 public class Constant extends Number implements Comparable<Number>,Serializable
 {
-	private static final long serialVersionUID=01L;;
+	private static final long serialVersionUID=01L;
 	/**
 	 * The numerator of this number.
 	 */
