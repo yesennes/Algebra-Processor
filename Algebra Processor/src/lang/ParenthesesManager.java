@@ -21,7 +21,7 @@ class ParenthesesManager
 	
 	static Pattern getContent(int level)
 	{
-		
+
 		addUpTo(level);
 		return levelOfParen.get(level);
 	}
