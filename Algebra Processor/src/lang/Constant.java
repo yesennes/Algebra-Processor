@@ -461,13 +461,4 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 		answer.divide((int)Math.pow(i, root));
 		return answer;
 	}
-	
-	public static void main(String[] args) {
-		TreeMap<Integer, Constant> tempRoots = new TreeMap<>();
-		tempRoots.put(5, new Constant(4));
-		tempRoots.put(7, new Constant(3));
-		tempRoots.put(9, new Constant(17));
-		Constant c = new Constant(7, 28, tempRoots);
-		System.out.println(c);
-	}
 }
