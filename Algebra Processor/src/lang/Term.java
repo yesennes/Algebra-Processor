@@ -26,16 +26,16 @@ public class Term implements Comparable<Term>, Serializable {
 	/**
 	 * The coefficient of the Term.
 	 */
-	public Constant coeff;
+	Constant coeff;
 	/**
 	 * A Map of variables and their powers in it. Each key is raised to its value and multiplied into this.
 	 */
-	public TreeMap<Character, Constant> vars;
+	TreeMap<Character, Constant> vars;
 	/**
 	 * A Map to represent things which can't be distributed, such as (x+3)^(1/2), each key is raised to its 
 	 * value and then multiplied into this.
 	 */
-	public TreeMap<Expression, Expression> undistr;
+	TreeMap<Expression, Expression> undistr;
 	/**
 	 * Term with no Variables, and a coefficient of -1.
 	 */
