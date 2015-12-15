@@ -11,9 +11,8 @@ import java.util.Set;
  * @author Luke Senseney
  * 
  */
-public class Solution implements Serializable
-{
-	private static final long serialVersionUID=1L;
+public class Solution implements Serializable {
+	private static final long serialVersionUID = 1L;
 	/**
 	 * The variable this is a solution for.
 	 */
@@ -25,61 +24,60 @@ public class Solution implements Serializable
 	/**
 	 * Represents whether this has all possible solution for letter, or if others remain unknown
 	 */
-	public boolean allPossible=true;
+	public boolean allPossible = true;
 
 	/**
 	 * Creates a new solution.
-	 * @param newLetter The variable for this solution.
-	 * @param newValue Expression that is equal to newLetter.
+	 * @param letter The variable for this solution.
+	 * @param value Expression that is equal to newLetter.
 	 */
-	public Solution(char newLetter,Expression newValue)
-	{
-		letter=newLetter;
-		value=new HashSet<Expression>(Collections.singleton(newValue));
+	public Solution(char letter, Expression value) {
+		this.letter = letter;
+		this.value = new HashSet<>(Collections.singleton(value));
 	}
 
 	/**
 	 * Creates a new Solution for a character with a HashSet of values.
-	 * @param newLetter the variable this is a solution for
-	 * @param newValue the values of newLetter
+	 * @param letter the variable this is a solution for
+	 * @param value the values of newLetter
 	 */
-	public Solution(char newLetter,Set<Expression> newValue)
-	{
-		letter=newLetter;
-		value=newValue;
+	public Solution(char letter, Set<Expression> value) {
+		this.letter = letter;
+		this.value = value;
 	}
 	
 	/**
 	 * Creates a new solution for a variable with no values.
-	 * @param newLetter The variable this is a solution for.
+	 * @param letter The variable this is a solution for.
 	 */
-	public Solution(char newLetter)
-	{
-		letter=newLetter;
-		value=new HashSet<Expression>();
+	public Solution(char letter) {
+		this.letter = letter;
+		value = new HashSet<>();
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */
-	@Override public String toString()
-	{
-		String rtn=letter+"=";
-		for(Expression current:value)
-			rtn+=current+" or ";
-		return rtn.substring(0,rtn.length()-4);
+	@Override
+	public String toString() {
+		String rtn = letter + "=";
+		for(Expression current : value) {
+			rtn += current + " or ";
+		}
+		return rtn.substring(0, rtn.length() - 4);
 	}
 	
 	/**
 	 * @param places decimal places to round to.
-	 * @return A String representation of this with decimals rounded to places rather than fractions and \u03c0, e and roots rouned to decimals.
+	 * @return A String representation of this with decimals rounded to places rather than fractions and \u03c0,
+	 * e and roots rounded to decimals.
 	 */
-	public String approx(int places)
-	{
-		String rtn=letter+"=";
-		for(Expression current:value)
-			rtn+=current.approx().toStringDecimal(places)+" or ";
-		return rtn.substring(0,rtn.length()-4);
+	public String approx(int places) {
+		String rtn = letter + "=";
+		for(Expression current : value) {
+			rtn += current.approx().toStringDecimal(places) + " or ";
+		}
+		return rtn.substring(0, rtn.length() - 4);
 	}
-}// Glory to God
+}
