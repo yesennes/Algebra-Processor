@@ -16,15 +16,15 @@ public class Solution implements Serializable {
 	/**
 	 * The variable this is a solution for.
 	 */
-	public char letter;
+	char letter;
 	/**
 	 * Expressions which are equal the the variable.
 	 */
-	public Set<Expression> value;
+	Set<Expression> value;
 	/**
 	 * Represents whether this has all possible solution for letter, or if others remain unknown
 	 */
-	public boolean allPossible = true;
+	boolean allPossible = true;
 
 	/**
 	 * Creates a new solution.
