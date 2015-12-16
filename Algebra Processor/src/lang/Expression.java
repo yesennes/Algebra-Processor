@@ -50,9 +50,9 @@ public class Expression implements Comparable<Expression>, Serializable {
 	 */
 	public Expression(String newExpression) throws MathFormatException {
 		terms = new ArrayList<>();
-		// Removes all white space and replaces i and e with their proper character.
+		// Removes all white space and replaces i and e with their proper respective characters.
 		newExpression = newExpression.replaceAll("\\s", "").replace(Term.IMAG_UNIT, String.valueOf(Term.interImag))
-				.replace(Term.E,String.valueOf(Term.interE));
+				.replace(Term.E, String.valueOf(Term.interE));
 		String[] split = newExpression.split("=");
 		if(split.length > 2) {
 			throw new MathFormatException("There are too may \"=\" in the entered String");
