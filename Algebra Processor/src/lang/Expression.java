@@ -83,7 +83,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 			if(c =='(') {
 				inParen++;
 				if(inParen > max) {
-					max = inParen;
+					max=inParen;
 				}
 			} else if(c ==')') {
 				inParen--;
@@ -183,7 +183,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 				exp.undistr.put(new Expression(new Term(exp.coeff, terms.get(0).vars)), power);
 			}
 			// Essentially removes every thing in this term except the undistr, which has already been raised to power.
-			return new Expression(new Term(Constant.ONE.clone(), new TreeMap<>(), exp.undistr));
+			return new Expression(new Term(Constant.ONE.clone(), new TreeMap<>(),exp.undistr));
 		}
 		// expression^pow could not be simplified in any manner. This just puts into the undistr of a new term.
 		TreeMap<Expression, Expression> d = new TreeMap<>(Collections.singletonMap(this.clone(), power));
@@ -373,7 +373,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 		for(int i = 0; i < terms.size(); i++) {
 			for(int j = terms.size() - 1; j > i; j--) {
 				try {
-					if(Term.isLikeTerm(terms.get(j), terms.get(i))) {
+					if(Term.isLikeTerm(terms.get(j),terms.get(i))) {
 						terms.get(i).coeff = terms.get(i).coeff.add(terms.get(j).coeff);
 						terms.remove(j);
 					}
@@ -388,7 +388,8 @@ public class Expression implements Comparable<Expression>, Serializable {
 	}
 
 	/**
-	 * Factors out the gcd, and if the remaining expression is a quadratic, factors that with the quadratic formula. If the expression has a factor which is a single Term, it will be first in the ArrayList
+	 * Factors out the gcd, and if the remaining expression is a quadratic, factors that with the quadratic formula. If
+	 * the expression has a factor which is a single Term, it will be first in the ArrayList
 	 * @return The factors of this. None will be equations.
 	 */
 	public ArrayList<Expression> factor() {
@@ -684,7 +685,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 				Solution solvedIsoIn = toSolve.solveFor(iso);
 				return new HashSet<>(solvedIsoIn.value);
 			} catch(NotAbleToSolve e) {
-				throw new NotAbleToSolve("The expression " + iso + " is in was unable to be solved.", e);
+				throw new NotAbleToSolve("The expression "+ iso +" is in was unable to be solved.", e);
 			}
 		}
 	}
@@ -828,7 +829,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 	@Override
 	@SuppressWarnings("unchecked")
 	public Expression clone() {
-		Expression a = new Expression((Collection<Term>)terms.clone(), isEquation);
+		Expression a = new Expression((Collection<Term>)terms.clone(),isEquation);
 		a.terms.replaceAll(Term::clone);
 		return a;
 	}
