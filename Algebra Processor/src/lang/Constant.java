@@ -194,8 +194,8 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 		value.removeIf(ONE::equals);
 		// Keeps the denominator positive.
 		if(denominator < 0) {
-			numerator =- numerator;
-			denominator =- denominator;
+			numerator = -numerator;
+			denominator = -denominator;
 		}
 		// Reduces the fraction. Does not call .divide(Constant) to avoid recursion
 		double divide = General.gcd(numerator, denominator);
