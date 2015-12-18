@@ -25,7 +25,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 */
 	long denominator = 1;
 	/**
-	 * A Map of roots in this constant. For each key, value^(1/key) is multiplied into this constant.
+	 * A Map of roots in this constant. Square root of 5 would be (1/2) mapped to 5.
 	 */
 	TreeMap<Integer, Constant> roots = new TreeMap<>();
 	/**
@@ -352,7 +352,8 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	}
 
 	/**
-	 * NOT AN ACTUAL JAVADOC, JUST AN ALERT THAT THIS METHOD NEEDS AN ACTUAL JAVADOC.
+	 * Creates a copy of this Constant and returns it.
+	 * @return exact copy of the current Constant.
 	 */
 	@Override
 	public Constant clone() {
@@ -437,9 +438,9 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	}
 	
 	/**
-	 * NOT AN ACTUAL JAVADOC, I JUST WROTE THIS IN TO GET YOUR ATTENTION THAT THIS METHOD LACKS AN ACTUAL JAVADOC.
-	 * @param s
-	 * @return
+	 * Method that returns a new Constant from a string entered in its parameter.
+	 * @param s String that will form a new Constant
+	 * @return the new Constant
 	 */
 	public static Constant valueOf(String s) {
 		return new Constant(Double.valueOf(s));
