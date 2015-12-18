@@ -310,7 +310,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 		}
 		// If power has a denominator, puts this in a root in a new Constant.
 		if(power.denominator > 1) {
-			c.roots = new TreeMap<Integer, Constant>(Collections.singletonMap((int)power.denominator, this.clone()));
+			c.roots = new TreeMap<>(Collections.singletonMap((int)power.denominator, this.clone()));
 			c.numerator = 1;
 			c.denominator = 1;
 		}
