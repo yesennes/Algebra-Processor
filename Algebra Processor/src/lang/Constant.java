@@ -322,9 +322,8 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 * Inverts this.
 	 * @return 1/this
 	 */
-	@SuppressWarnings("unchecked")
 	public Constant invert() {
-		Constant c = new Constant(denominator, numerator, (TreeMap<Integer, Constant>)roots.clone());
+		Constant c = clone();
 		c.roots.replaceAll((t, u) -> u.invert());
 		c.simplify();
 		return c;
@@ -371,12 +370,14 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 */
 	@Override
 	public boolean equals(Object o) {
-		try {
-			Number a = (Number)o;
-			return a.doubleValue() == doubleValue();
-		} catch(ClassCastException e) {
+		if (!(o instanceof Constant)) {
 			return false;
 		}
+		if (o == this) {
+			return true;
+		}
+		Constant a = (Constant)o;
+		return a.doubleValue() == doubleValue();
 	}
 
 	/*
