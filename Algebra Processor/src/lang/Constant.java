@@ -450,7 +450,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	/**
 	 * Finds the x, where x is the highest number that meets these requirements: is a factor of inRoot and is an
 	 * rational number when raised to 1/root. This makes the returned Constant for simplifying roots, i.e. to simplify
-	 * 12^(1/2) call extract(2,12) it will return 4. Divide the 12 by for to get 3, then raise 4 to 1/2 to get 2. The
+	 * 12^(1/2) call extract(2,12) it will return 4. Divide the 12 by 4 to get 3, then raise 4 to 1/2 to get 2. The
 	 * simplified version is 2(3)^1/2
 	 * @return The highest integer that is a factor of inRoot, and when rooted by root is an integer.
 	 */
