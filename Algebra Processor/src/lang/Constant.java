@@ -1,6 +1,7 @@
 package lang;
 
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,11 +20,11 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	/**
 	 * The numerator of this number.
 	 */
-	long numerator = 0;
+	BigInteger numerator = BigInteger.ZERO;
 	/**
 	 * The denominator of this number.
 	 */
-	long denominator = 1;
+	BigInteger denominator = BigInteger.ONE;
 	/**
 	 * A Map of roots in this constant. Square root of 5 would be (1/2) mapped to 5.
 	 */
@@ -42,7 +43,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 * @param numerator The long to make a Constant.
 	 */
 	public Constant(long numerator) {
-		this.numerator = numerator;
+		this.numerator = BigInteger.valueOf(numerator);
 	}
 
 	/**
@@ -51,8 +52,8 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 * @param denominator The new denominator.
 	 */
 	public Constant(long numerator, long denominator) {
-		this.numerator = numerator;
-		this.denominator = denominator;
+		this.numerator = BigInteger.valueOf(numerator);
+		this.denominator = BigInteger.valueOf(denominator);
 		simplify();
 	}
 
@@ -61,11 +62,14 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 * @param newConstant The double to make a Constant out of.
 	 */
 	public Constant(double newConstant) {
-		while(newConstant % 1 != 0) {
-			newConstant *= 10;
-			denominator *= 10;
+		if(newConstant % 1 != 0) {
+			String s = String.valueOf(newConstant);
+			int i = s.indexOf('.');
+			numerator = new BigInteger(s.substring(0, i) + s.substring(i + 1));
+			denominator = BigInteger.TEN.pow(s.length() - i - 1);
+		} else {
+			numerator = BigInteger.valueOf((long)newConstant);
 		}
-		numerator = (long)newConstant;
 		simplify();
 	}
 
@@ -76,8 +80,8 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 * @param roots The roots.
 	 */
 	public Constant(long numerator, long denominator, TreeMap<Integer, Constant> roots) {
-		this.numerator = numerator;
-		this.denominator = denominator;
+		this.numerator = BigInteger.valueOf(numerator);
+		this.denominator = BigInteger.valueOf(denominator);
 		this.roots = roots;
 		simplify();
 	}
@@ -86,6 +90,28 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 * Creates a new Constant with a value of 0.
 	 */
 	public Constant() {
+	}
+
+	/**
+	 * Constant constructor that takes in two BigIntegers for the numerator and denominator.
+	 * @param  numerator   The numerator of the Constant.
+	 * @param  denominator The denominator of the Constant.
+	 */
+	public Constant(BigInteger numerator, BigInteger denominator) {
+		this.numerator = numerator;
+		this.denominator = denominator;
+	}
+
+	/**
+	 * Creates a Constant from a numerator, denominator, and roots.
+	 * @param  numerator   The numerator of this Constant.
+	 * @param  denominator The denominator of this Constant.
+	 * @param  roots       The roots of this Constant.
+	 */
+	public Constant(BigInteger numerator, BigInteger denominator, TreeMap<Integer, Constant> roots) {
+		this.numerator = numerator;
+		this.denominator = denominator;
+		this.roots = roots;
 	}
 
 	/*
@@ -99,7 +125,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 		for(Entry<Integer, Constant> root : roots.entrySet()) {
 			sum *= Math.pow(root.getValue().doubleValue(), 1. / root.getKey());
 		}
-		return sum * numerator / (double)denominator;
+		return sum * numerator.doubleValue() / denominator.doubleValue();
 	}
 
 	/*
@@ -177,11 +203,13 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 				current.setValue(current.getValue().divide(extract));
 			}
 			// Changes extract to what must be multiplied to the coeff.
-			extract.numerator = (long)Math.pow(extract.numerator, 1. / current.getKey());
-			extract.denominator = (long)Math.pow(extract.denominator, 1. / current.getKey());
-			current.getValue().numerator *= current.getValue().denominator;
-			denominator *= current.getValue().denominator;
-			current.getValue().denominator = 1;
+			extract.numerator = BigInteger.valueOf((long)Math.pow(extract.numerator.doubleValue(), 1.
+					/ current.getKey().doubleValue()));
+			extract.denominator = BigInteger.valueOf((long)Math.pow(extract.denominator.doubleValue(), 1.
+					/ current.getKey().doubleValue()));
+			current.getValue().numerator = current.getValue().numerator.multiply(current.getValue().denominator);
+			denominator = denominator.multiply(current.getValue().denominator);
+			current.getValue().denominator = BigInteger.ONE;
 			if(!extract.equals(ONE)) {
 				Constant toBe = multiply(extract);
 				numerator = toBe.numerator;
@@ -193,14 +221,14 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 		// Removes all roots with a value of one.
 		value.removeIf(ONE::equals);
 		// Keeps the denominator positive.
-		if(denominator < 0) {
-			numerator = -numerator;
-			denominator = -denominator;
+		if(denominator.compareTo(BigInteger.ZERO) < 0) {
+			numerator = numerator.negate();
+			denominator = denominator.negate();
 		}
 		// Reduces the fraction. Does not call .divide(Constant) to avoid recursion
-		double divide = General.gcd(numerator, denominator);
-		numerator = (long)(numerator / divide);
-		denominator = (long)(denominator / divide);
+		BigInteger divide = numerator.gcd(denominator);
+		numerator = numerator.divide(divide);
+		denominator = denominator.divide(divide);
 	}
 
 	/**
@@ -210,8 +238,8 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 */
 	public Constant multiply(Constant a) {
 		Constant c = clone();
-		c.numerator *= a.numerator;
-		c.denominator *= a.denominator;
+		c.numerator = c.numerator.multiply(a.numerator);
+		c.denominator = c.denominator.multiply(a.denominator);
 		for(Entry<Integer, Constant> current : a.roots.entrySet()) {
 			c.addRoot(current.getKey(), current.getValue());
 		}
@@ -226,7 +254,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 */
 	public Constant multiply(long a) {
 		Constant c = clone();
-		c.numerator *= a;
+		c.numerator = c.numerator.multiply(BigInteger.valueOf(a));
 		c.simplify();
 		return c;
 	}
@@ -247,7 +275,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 */
 	public Constant divide(long a) {
 		Constant c = clone();
-		c.numerator /= a;
+		c.denominator = c.denominator.multiply(BigInteger.valueOf(a));
 		c.simplify();
 		return c;
 	}
@@ -263,8 +291,9 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 			throw new DifferentRoots();
 		}
 		// Finds the lcm, adds the numerators/denominators and multiplies by the lcm, then sets the denominator to lcm.
-		long lcm = General.lcm(denominator, a.denominator);
-		return new Constant(numerator * lcm / denominator + a.numerator * lcm / a.denominator, lcm);
+		BigInteger lcm = denominator.multiply(a.denominator).divide(denominator.gcd(a.denominator));
+		return new Constant(numerator.multiply(lcm).divide(denominator).add(
+				a.numerator.multiply(lcm).divide(a.denominator)), lcm);
 	}
 
 	/**
@@ -297,22 +326,38 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 * @param power the power to raise this by
 	 * @return this^power
 	 */
-	public Constant raise(Constant power) {
+	public Constant raise(Constant power) throws OverflowException, IllegalArgumentException {
+		if(!power.roots.isEmpty()) {
+ 			throw new IllegalArgumentException(power + " had roots and was an exponent.");
+ 		}
+ 		if(power.doubleValue() > Integer.MAX_VALUE) {
+ 			throw new OverflowException("Power was to big to be an exponent.");
+ 		}
+ 		if(power.numerator.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) > 0) {
+ 			BigInteger div = power.numerator.multiply(BigInteger.valueOf(Integer.MAX_VALUE));
+ 			power.numerator = BigInteger.valueOf(Integer.MAX_VALUE);
+ 			power.denominator = power.denominator.divide(div);
+ 		}
+ 		if(power.denominator.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) > 0) {
+ 			BigInteger div = power.denominator.multiply(BigInteger.valueOf(Integer.MAX_VALUE));
+ 			power.denominator = BigInteger.valueOf(Integer.MAX_VALUE);
+ 			power.numerator = power.numerator.divide(div);
+ 		}
 		Constant c = clone();
 		// If power is less than one, flips this, and raises by -power, else just raises by power.
-		if(power.numerator < 0) {
+		if(power.numerator.compareTo(BigInteger.ZERO) < 0) {
 			c = c.invert();
-			c.numerator = (long)Math.pow(c.numerator, -power.numerator);
-			c.denominator = (long)Math.pow(c.denominator, -power.numerator);
+			c.numerator = c.numerator.pow(-power.numerator.intValueExact());
+			c.denominator = c.denominator.pow(-power.numerator.intValueExact());
 		} else {
-			c.numerator = (long)Math.pow(c.numerator, power.numerator);
-			c.denominator = (long)Math.pow(c.denominator, power.numerator);
+			c.numerator = c.numerator.pow(power.numerator.intValueExact());
+			c.denominator = c.denominator.pow(power.numerator.intValueExact());
 		}
 		// If power has a denominator, puts this in a root in a new Constant.
-		if(power.denominator > 1) {
-			c.roots = new TreeMap<>(Collections.singletonMap((int)power.denominator, this.clone()));
-			c.numerator = 1;
-			c.denominator = 1;
+		if(power.denominator.compareTo(BigInteger.ONE) > 0) {
+			c.roots = new TreeMap<>(Collections.singletonMap(power.denominator.intValueExact(), c.clone()));
+			c.numerator = BigInteger.ONE;
+			c.denominator = BigInteger.ONE;
 		}
 		c.simplify();
 		return c;
@@ -336,14 +381,15 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 * @return The gcd of a and b.
 	 */
 	public static Constant gcd(Constant a, Constant b) {
-		Constant ans = new Constant(
-				General.gcd(a.numerator, b.numerator), a.denominator * b.denominator / General.gcd(
-						a.denominator, b.denominator));
+		Constant ans = new Constant(a.numerator.gcd(b.numerator),
+			a.denominator.multiply(b.denominator).divide(a.denominator.gcd(b.denominator)));
 		for(Entry<Integer, Constant> current : a.roots.entrySet()) {
 			Constant other = b.roots.get(current.getKey());
-			Constant gcd = Constant.gcd(current.getValue(), other);
-			if(!gcd.equals(ONE)) {
-				ans.addRoot(current.getKey(), gcd);
+			if (other != null) {
+				Constant gcd = Constant.gcd(current.getValue(), other);
+				if (!gcd.equals(ONE)) {
+					ans.addRoot(current.getKey(), gcd);
+				}
 			}
 		}
 		ans.simplify();
@@ -387,7 +433,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 */
 	@Override
 	public int hashCode() {
-		return (int)(numerator >> 32 + denominator >> 32 + numerator + denominator) + roots.hashCode();
+		return (int)doubleValue() * (1 << 16);
 	}
 
 	/*
@@ -418,10 +464,10 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 		StringBuffer r = new StringBuffer();
 		// If there is nothing in the roots, or numerator isn't 1 or -1,adds the numerator to this. If the numerator is
 		// -1 and there are roots, just add the minus sign to this.
-		if(roots.size() == 0 || (numerator != 1 && numerator != -1)) {
-			r.append(numerator);
-		} else if(numerator == -1) {
+		if (numerator.equals(BigInteger.ONE.negate()) && roots.size() != 0) {
 			r.append("-");
+		} else if(roots.size() == 0 || !numerator.equals(BigInteger.ONE)) {
+			r.append(numerator);
 		}
 		for(Entry<Integer, Constant> current : roots.entrySet()) {
 			// Generates the proper root symbol for the root, and then what's in the root.
@@ -432,18 +478,19 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 			}
 			r.append('(' + current.getValue().toString() + ')');
 		}
-		if(denominator != 1) {
+		if(!denominator.equals(BigInteger.ONE)) {
 			r.append("/").append(denominator);
 		}
 		return r.toString();
 	}
 	
 	/**
-	 * Method that returns a new Constant from a string entered in its parameter.
-	 * @param s String that will form a new Constant
-	 * @return the new Constant
+	 * Parses a String into a Constant.
+	 * @param s String to make into a Constant
+	 * @return s as a Constant.
+	 * @throws NumberFormatException If s is not a properly formatted number.
 	 */
-	public static Constant valueOf(String s) {
+	public static Constant valueOf(String s) throws NumberFormatException {
 		return new Constant(Double.valueOf(s));
 	}
 
@@ -455,11 +502,17 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 * @return The highest integer that is a factor of inRoot, and when rooted by root is an integer.
 	 */
 	private static Constant extract(int root, Constant inRoot) {
+		if(inRoot.numerator.abs().doubleValue() == Double.POSITIVE_INFINITY || inRoot.denominator.doubleValue()
+			== Double.POSITIVE_INFINITY) {
+			return Constant.ONE;
+		}
 		int i;
 		// Finds the highest number, that raised to
-		for(i = (int)Math.pow(Math.abs(inRoot.numerator), 1. / root); inRoot.numerator / Math.pow(i, root) % 1 != 0; i--);
+		for(i = (int)Math.pow(inRoot.numerator.abs().doubleValue(), 1. / root);
+			!inRoot.numerator.mod(BigInteger.valueOf((long)Math.pow(i, root))).equals(BigInteger.ZERO); i--);
 		Constant answer = new Constant(Math.pow(i, root));
-		for(i = (int)Math.pow(Math.abs(inRoot.denominator), 1. / root); inRoot.denominator / Math.pow(i, root) % 1 != 0; i--);
+		for(i = (int)Math.pow(inRoot.denominator.doubleValue(), 1. / root);
+			!inRoot.denominator.mod(BigInteger.valueOf((long)Math.pow(i, root))).equals(BigInteger.ZERO); i--);
 		answer.divide((int)Math.pow(i, root));
 		return answer;
 	}
