@@ -4,7 +4,6 @@ import java.io.Serializable;
 import java.math.BigInteger;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -194,24 +193,24 @@ public class Term implements Comparable<Term>, Serializable {
 							}
 						}
 					}
-				}
-				if(pow != null) {
-					if(base.group(1) != null) {
-						coeff = coeff.multiply(Constant.valueOf(base.group(1)).raise(inverse ? pow.negate() : pow));
-					} else if(base.group(2) != null) {
-						vars.put(base.group(2).charAt(0), inverse ? pow.negate() : pow);
+					if(pow != null) {
+						if(base.group(1) != null) {
+							coeff = coeff.multiply(Constant.valueOf(base.group(1)).raise(inverse ? pow.negate() : pow));
+						} else if(base.group(2) != null) {
+							vars.put(base.group(2).charAt(0), inverse ? pow.negate() : pow);
+						} else {
+							String paren = base.group(3);
+							paren = paren.substring(1, paren.length() - 1);
+							undistr.put(new Expression(paren), new Expression(inverse ? pow.negate() : pow));
+						}
 					} else {
-						String paren = base.group(3);
-						paren = paren.substring(1, paren.length() - 1);
-						undistr.put(new Expression(paren), new Expression(inverse ? pow.negate() : pow));
-					}
-				} else {
-					if(base.group(1) != null) {
-						undistr.put(new Expression(Constant.valueOf(base.group(1))), inverse ? power.negate() : power);
-					} else if(base.group(2) != null) {
-						undistr.put(new Expression(base.group(2).charAt(0)), inverse ? power.negate() : power);
-					} else {
-						undistr.put(new Expression(base.group(3)), inverse ? power.negate() : power);
+						if(base.group(1) != null) {
+							undistr.put(new Expression(Constant.valueOf(base.group(1))), inverse ? power.negate() : power);
+						} else if(base.group(2) != null) {
+							undistr.put(new Expression(base.group(2).charAt(0)), inverse ? power.negate() : power);
+						} else {
+							undistr.put(new Expression(base.group(3)), inverse ? power.negate() : power);
+						}
 					}
 				}
 				if(!m.hitEnd()) {
@@ -293,7 +292,7 @@ public class Term implements Comparable<Term>, Serializable {
 				iter.remove();
 				removed = true;
 				// Does Euler's Identity
-			} else if(current.getKey().equals(new Expression(Term.interE)) && current.getValue().equals(new Expression(Term.iterImag).multiply(new Expression(Term.PI)))) {
+			} else if(current.getKey().equals(new Expression(Term.interE)) && current.getValue().equals(new Expression(Term.interImag).multiply(new Expression(Term.PI)))) {
 				iter.remove();
 				coeff = coeff.negate();
 			}
@@ -660,7 +659,7 @@ public class Term implements Comparable<Term>, Serializable {
 				var.addAll(curTerm.vars.keySet());
 			}
 		}
-		var.remove(iterImag);
+		var.remove(interImag);
 		var.remove(interE);
 		var.remove(PI);
 		return var;
