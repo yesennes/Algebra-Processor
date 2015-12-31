@@ -62,7 +62,8 @@ public class Term implements Comparable<Term>, Serializable {
 	// public HashSet<Expression> restrictions = new HashSet<>();
 
 	/**
-	 * Used to find the level of parentheses in a String representing a term. Also checks that this term is formatted correctly.
+	 * Used to find the level of parentheses in a String representing a term. Also checks that this term is
+	 * formatted correctly.
 	 * @param term The String to find the level of parentheses in.
 	 * @return The levels of parentheses in term.
 	 * @throws MathFormatException If term is not formatted correctly.
@@ -137,7 +138,8 @@ public class Term implements Comparable<Term>, Serializable {
 			while(m.lookingAt()) {
 				MatchResult base = m.toMatchResult();
 				m.region(m.end(), newTerm.length());
-				m.usePattern(Pattern.compile("\\^-?(?:(" + number + ")|(" + var + ")|(" + ParenthesesManager.getParen(level) + "))"));
+				m.usePattern(Pattern.compile("\\^-?(?:(" + number + ")|(" + var + ")|(" + ParenthesesManager.getParen(level)
+					+ "))"));
 				ArrayList<MatchResult> expos = new ArrayList<>();
 				while(m.lookingAt()) {
 					expos.add(m.toMatchResult());
@@ -292,7 +294,8 @@ public class Term implements Comparable<Term>, Serializable {
 				iter.remove();
 				removed = true;
 				// Does Euler's Identity
-			} else if(current.getKey().equals(new Expression(Term.interE)) && current.getValue().equals(new Expression(Term.interImag).multiply(new Expression(Term.PI)))) {
+			} else if(current.getKey().equals(new Expression(Term.interE))
+					&& current.getValue().equals(new Expression(Term.interImag).multiply(new Expression(Term.PI)))) {
 				iter.remove();
 				coeff = coeff.negate();
 			}
@@ -707,15 +710,15 @@ public class Term implements Comparable<Term>, Serializable {
 		// parentheses around it.
 		for(Entry<Expression, Expression> current : undistr.entrySet()) {
 			Term base = current.getKey().terms.get(0);
-			if(current.getKey().terms.size() == 1 && base.coeff.denominator.equals(BigInteger.ONE) && (base.coeff.numerator.equals(BigInteger.ONE)
-					|| base.vars.size() == 0) && base.undistr.size() == 0) {
+			if(current.getKey().terms.size() == 1 && base.coeff.denominator.equals(BigInteger.ONE)
+					&& (base.coeff.numerator.equals(BigInteger.ONE) || base.vars.size() == 0) && base.undistr.size() == 0) {
 				output.append(current.getKey()).append('^');
 			} else {
 				output.append('(').append(current.getKey()).append(")^");
 			}
 			Term pow = current.getValue().terms.get(0);
-			if(current.getValue().terms.size() == 1 && pow.coeff.denominator.equals(BigInteger.ONE) && (pow.coeff.numerator.equals(BigInteger.ONE)
-					|| pow.vars.size() == 0) && pow.undistr.size() == 0) {
+			if(current.getValue().terms.size() == 1 && pow.coeff.denominator.equals(BigInteger.ONE)
+					&& (pow.coeff.numerator.equals(BigInteger.ONE) || pow.vars.size() == 0) && pow.undistr.size() == 0) {
 				output.append(current.getValue());
 			} else {
 				output.append('(').append(current.getValue()).append(")");
