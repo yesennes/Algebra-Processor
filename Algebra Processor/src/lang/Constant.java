@@ -367,8 +367,9 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 * Inverts this.
 	 * @return 1/this
 	 */
+	@SuppressWarnings("unchecked")
 	public Constant invert() {
-		Constant c = clone();
+		Constant c = new Constant(denominator, numerator, (TreeMap<Integer, Constant>)roots.clone());
 		c.roots.replaceAll((t, u) -> u.invert());
 		c.simplify();
 		return c;
