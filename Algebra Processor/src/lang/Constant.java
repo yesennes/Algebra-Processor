@@ -12,7 +12,7 @@ import java.util.TreeMap;
 /**
  * Class to maintain exact accuracy when using repeating decimals, non-integer, or constants, by holding a numerator,
  * denominator, and array of Roots.
- * 
+ *
  * @author Luke Senseney
  */
 public class Constant extends Number implements Comparable<Number>, Serializable {
@@ -20,15 +20,15 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	/**
 	 * The numerator of this number.
 	 */
-	BigInteger numerator = BigInteger.ZERO;
+	private BigInteger numerator = BigInteger.ZERO;
 	/**
 	 * The denominator of this number.
 	 */
-	BigInteger denominator = BigInteger.ONE;
+	private BigInteger denominator = BigInteger.ONE;
 	/**
 	 * A Map of roots in this constant. Square root of 5 would be (1/2) mapped to 5.
 	 */
-	TreeMap<Integer, Constant> roots = new TreeMap<>();
+	private TreeMap<Integer, Constant> roots = new TreeMap<>();
 	/**
 	 * Constant with a value of 1.
 	 */
@@ -114,9 +114,60 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 		this.roots = roots;
 	}
 
+	/**
+	 * Getter for the numerator of this Constant.
+	 * @return The numerator of this constant.
+	 */
+	public BigInteger getNumerator() {
+	    return numerator;
+	}
+
+	/**
+	 * Getter for the denominator of this Constant.
+	 * @return The denominator of this Constant.
+	 */
+	public BigInteger getDenominator() {
+	    return denominator;
+	}
+
+	/**
+	 * Getter for the roots of this Constant.
+	 * @return The roots of this Constant.
+	 */
+	public TreeMap<Integer, Constant> getRoots() {
+	    return roots;
+	}
+
+	/**
+	 * Setter for the numerator of this Constant.
+	 * @param numerator The new numerator of this Constant.
+	 */
+	public void setNumerator(BigInteger numerator) {
+	    this.numerator = numerator;
+	    simplify();
+	}
+
+	/**
+	 * Setter for the denominator of this Constant.
+	 * @param denominator The new denominator of this Constant.
+	 */
+	public void setDenominator(BigInteger denominator) {
+	    this.denominator = denominator;
+	    simplify();
+	}
+
+	/**
+	 * Setter for the roots of this Constant.
+	 * @param roots The new roots of this Constant.
+	 */
+	public void setRoots(TreeMap<Integer, Constant> roots) {
+	    this.roots = roots;
+	    simplify();
+	}
+
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Number#doubleValue()
 	 */
 	@Override
@@ -130,7 +181,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Number#floatValue()
 	 */
 	@Override
@@ -140,7 +191,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Number#intValue()
 	 */
 	@Override
@@ -150,7 +201,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Number#longValue()
 	 */
 	@Override
@@ -163,7 +214,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 * @param root The root to be added
 	 * @param in The constant to be in the root
 	 */
-	public void addRoot(int root, Constant in) {
+	public void addRoot(Integer root, Constant in) {
 		Constant was = roots.put(root, in);
 		if(was != null) {
 			in.multiply(was);
@@ -225,7 +276,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 			numerator = numerator.negate();
 			denominator = denominator.negate();
 		}
-		// Reduces the fraction. Does not call .divide(Constant) to avoid infinite recursion
+		// Reduces the fraction. Does not call .divide(Constant) to avoid recursion
 		BigInteger divide = numerator.gcd(denominator);
 		numerator = numerator.divide(divide);
 		denominator = denominator.divide(divide);
@@ -429,7 +480,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
@@ -439,7 +490,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Comparable#compareTo(java.lang.Object)
 	 */
 	@Override
@@ -457,7 +508,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
@@ -484,7 +535,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 		}
 		return r.toString();
 	}
-	
+
 	/**
 	 * Parses a String into a Constant.
 	 * @param s String to make into a Constant
