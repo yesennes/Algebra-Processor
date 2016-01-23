@@ -1,13 +1,11 @@
 package lang;
 
 /**
- * @author Luke Senseney
  * Exception thrown when a calculation could not be completed because a number was too big.
+ *
+ * @author Luke Senseney
  */
 public class OverflowException extends RuntimeException {
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 	
 	/**

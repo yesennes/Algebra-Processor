@@ -9,7 +9,6 @@ import java.util.Set;
  * Class that represents all solutions for a variable.
  * 
  * @author Luke Senseney
- * 
  */
 public class Solution implements Serializable {
 	private static final long serialVersionUID = 1L;
@@ -18,11 +17,11 @@ public class Solution implements Serializable {
 	 */
 	char letter;
 	/**
-	 * Expressions which are equal the the variable.
+	 * Expressions which are equal to the variable.
 	 */
 	Set<Expression> value;
 	/**
-	 * Represents whether this has all possible solution for letter, or if others remain unknown
+	 * Represents whether this has all possible solutions for letter, or if others remain unknown.
 	 */
 	boolean allPossible = true;
 

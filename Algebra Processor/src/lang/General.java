@@ -7,7 +7,6 @@ import java.util.Collection;
  * Class that provides methods for dealing with arrays, text and numbers.
  * 
  * @author Luke Senseney
- * 
  */
 public class General {
 	/*

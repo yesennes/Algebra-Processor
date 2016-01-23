@@ -4,7 +4,6 @@ package lang;
  * Thrown when 
  * 
  * @author Luke Senseney, Nikola Istvanic
- *
  */
 public class NotEvaluatable extends Exception {
 	private static final long serialVersionUID = 1L;

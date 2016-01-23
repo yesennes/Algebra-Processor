@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 /**
  * Unused
+ * 
  * @author Luke Senseney
  */
 public class SystemEquations { // Start class
