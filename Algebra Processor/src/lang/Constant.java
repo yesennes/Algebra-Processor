@@ -163,7 +163,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 * @param root The root to be added
 	 * @param in The constant to be in the root
 	 */
-	public void addRoot(Integer root, Constant in) {
+	public void addRoot(int root, Constant in) {
 		Constant was = roots.put(root, in);
 		if(was != null) {
 			in.multiply(was);
@@ -225,7 +225,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 			numerator = numerator.negate();
 			denominator = denominator.negate();
 		}
-		// Reduces the fraction. Does not call .divide(Constant) to avoid recursion
+		// Reduces the fraction. Does not call .divide(Constant) to avoid infinite recursion
 		BigInteger divide = numerator.gcd(denominator);
 		numerator = numerator.divide(divide);
 		denominator = denominator.divide(divide);
