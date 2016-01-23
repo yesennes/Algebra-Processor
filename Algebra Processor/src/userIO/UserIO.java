@@ -24,12 +24,6 @@ import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-
-
-
-
-
-
 import lang.Expression;
 import lang.MathFormatException;
 import lang.OverflowException;
@@ -277,10 +271,10 @@ public class UserIO extends JFrame implements ActionListener
 			ArrayList<Expression> facts=exp.factor();
 			for(Expression fact:facts)
 				output.append("("+(appro?fact:fact.approx().toStringDecimal(digits.getNumber()))+")");
-			if(exp.isEquation)
+			if(exp.isEquation())
 				output.append("=0");
 			output.append("\n");
-			if(exp.isEquation)
+			if(exp.isEquation())
 			{
 				output.append("Solutions:");
 				HashSet<Solution> sols=exp.solve();

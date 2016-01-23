@@ -881,4 +881,12 @@ public class Expression implements Comparable<Expression>, Serializable {
 			return c1.compareTo(c2);
 		}
 	}
+    public boolean isEquation() {
+        return isEquation;
+    }
+
+    public void setEquation(boolean isEquation) {
+        this.isEquation = isEquation;
+        simplifyTerms();
+    }
 }
