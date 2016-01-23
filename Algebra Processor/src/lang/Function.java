@@ -3,7 +3,7 @@ package lang;
 import java.util.ArrayList;
 
 /**
- * THIS CLASS HAS NOT BEEN FINISHED AND IS NOT RECOGNIZED BY EXPRESSION OR TERM
+ * THIS CLASS HAS NOT BEEN IMPLEMENTED AND IS NOT RECOGNIZED BY EXPRESSION OR TERM
  * A class to represent Mathematical functions. In order for the Algebra Processor to recognize a
  * function, please register it with registerFunc(Function o).
  * 
@@ -15,7 +15,7 @@ public abstract class Function {
 	 * sin(parameter) is the geometric sine, not s*i*n*(parameter)
 	 * @see registerFunc
 	 */
-	static ArrayList<Function> recognizeFunc = new ArrayList<>(0);
+	static ArrayList<Function> recognizeFunc = new ArrayList<>();
 	
 	public static void registerFunc(Function o) {
 		recognizeFunc.add(o);
@@ -42,6 +42,8 @@ public abstract class Function {
 	 * @return This Function's signature.
 	 */
 	public abstract String getSig();
+
+    public abstract Function getNew(Expression[] parameters);
 
 	@Override
 	public String toString() {
