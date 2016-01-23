@@ -16,6 +16,7 @@ import java.util.regex.Matcher;
 
 /**
  * Class that represents a mathematical expression, or a equation if isEquation is true.
+ *
  * @author Luke Senseney
  */
 public class Expression implements Comparable<Expression>, Serializable {
@@ -27,7 +28,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 	/**
 	 * If true, it is treated like a equation with the array of Terms set equal to 0. Default is false.
 	 */
-	boolean isEquation = false;
+	public boolean isEquation = false;
 	/**
 	 * Expression with no terms.
 	 */
@@ -57,7 +58,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 		if(split.length > 2) {
 			throw new MathFormatException("There are too may \"=\" in the entered String");
 		}
-		// Parses the left side of this equation or all of this expression
+		// Parses the left side of this equation or all of this expression.
 		terms = notEquation(split[0]).terms;
 		// Subtracts the left side of this equation from the right.
 		if(split.length > 1) {
@@ -80,12 +81,12 @@ public class Expression implements Comparable<Expression>, Serializable {
 		int inParen = 0;
 		int max = 0;
 		for(char c : s.toCharArray()) {
-			if(c =='(') {
+			if(c == '(') {
 				inParen++;
 				if(inParen > max) {
-					max=inParen;
+					max = inParen;
 				}
-			} else if(c ==')') {
+			} else if(c == ')') {
 				inParen--;
 				if(inParen < 0) {
 					throw new MathFormatException("There is an unmatched close parenthese.");
@@ -145,8 +146,8 @@ public class Expression implements Comparable<Expression>, Serializable {
 	}
 
 	/**
-	 * Creates a new Expression from a array of Terms, is a equation if equation is true.
-	 * @param newTerms Terms to make a equation from.
+	 * Creates a new Expression from an array of Terms, is an equation if equation is true.
+	 * @param newTerms Terms to make an equation from.
 	 * @param equation Sets isEquation to this.
 	 */
 	public Expression(Collection<Term> newTerms, boolean equation) {
@@ -164,7 +165,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 
 	/**
 	 * Raises this to another Expression.
-	 * @param power the exponent
+	 * @param power The exponent.
 	 * @return this<sup>power</sup>. Should contain no references to this or power.
 	 */
 	public Expression raise(Expression power) {
@@ -183,7 +184,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 				exp.undistr.put(new Expression(new Term(exp.coeff, terms.get(0).vars)), power);
 			}
 			// Essentially removes every thing in this term except the undistr, which has already been raised to power.
-			return new Expression(new Term(Constant.ONE.clone(), new TreeMap<>(),exp.undistr));
+			return new Expression(new Term(Constant.ONE.clone(), new TreeMap<>(), exp.undistr));
 		}
 		// expression^pow could not be simplified in any manner. This just puts into the undistr of a new term.
 		TreeMap<Expression, Expression> d = new TreeMap<>(Collections.singletonMap(this.clone(), power));
@@ -198,7 +199,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 	public Expression raise(Constant pow) {
 		if(terms.size() == 1) {
 			// If power is constant and expression is a single Term, use
-			// Term.raise(Term,Constant)
+			// Term.raise(Term, Constant)
 			return new Expression(terms.get(0).raise(pow));
 		}
 		if(pow.equals(new Constant())) {
@@ -276,9 +277,9 @@ public class Expression implements Comparable<Expression>, Serializable {
 	}
 
 	/**
-	 * Adds an Term to this.
+	 * Adds a Term to this.
 	 * @param toAdd the Term to be added
-	 * @return this+toAdd. Should contain no references to this or toAdd,
+	 * @return this+toAdd. Should contain no references to this or toAdd.
 	 */
 	public Expression add(Term toAdd) {
 		Expression retrn = clone();
@@ -298,7 +299,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 
 	/**
 	 * Subtracts a Term from this.
-	 * @param toSubtract the Term to be subtracted
+	 * @param toSubtract The Term to be subtracted.
 	 * @return this-toSubract. Should contain no references to this or toSubtract.
 	 */
 	public Expression subtract(Term toSubtract) {
@@ -323,7 +324,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 	 * Gets the greatest common denominator of the gcd of the terms in each
 	 * @param a One Expression to find the gcd of.
 	 * @param b The other Expression to find the gcd of.
-	 * @return The greatest common denominator of the gcd of the terms in each
+	 * @return The greatest common denominator of the gcd of the terms in each.
 	 */
 	public static Expression gcd(Expression a, Expression b) {
 		// Factors each Expression
@@ -350,7 +351,18 @@ public class Expression implements Comparable<Expression>, Serializable {
 	}
 
 	/**
-	 * Combines like Terms, removes 0 terms and distributes what it can.
+     * Evaluates the Expression/function at the given Constant.
+     * @param x The x-coordinate where the function is being evaluated.
+     */
+    public void evaluate(char variable, Constant value) {
+        for (Term term : terms) {
+            term.evaluate(variable, value);
+        }
+        simplifyTerms();
+    }
+
+    /**
+	 * Combines like Terms, removes 0 terms, and distributes what it can.
 	 */
 	public void simplifyTerms() {
 		// Finds all undistr in terms that can be distributed, removes them from the Term, and distributes them
@@ -373,7 +385,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 		for(int i = 0; i < terms.size(); i++) {
 			for(int j = terms.size() - 1; j > i; j--) {
 				try {
-					if(Term.isLikeTerm(terms.get(j),terms.get(i))) {
+					if(Term.isLikeTerm(terms.get(j), terms.get(i))) {
 						terms.get(i).coeff = terms.get(i).coeff.add(terms.get(j).coeff);
 						terms.remove(j);
 					}
@@ -389,14 +401,14 @@ public class Expression implements Comparable<Expression>, Serializable {
 
 	/**
 	 * Factors out the gcd, and if the remaining expression is a quadratic, factors that with the quadratic formula. If
-	 * the expression has a factor which is a single Term, it will be first in the ArrayList
+	 * the expression has a factor which is a single Term, it will be first in the ArrayList.
 	 * @return The factors of this. None will be equations.
 	 */
 	public ArrayList<Expression> factor() {
 		// The list of factors to be returned
 		ArrayList<Expression> ans = new ArrayList<>();
 		Term fact = Term.gcd(terms);
-		// Takes all variables and expression raised to a negative power and multiplies them to fact
+		// Takes all variables and expressions raised to a negative power and multiplies them to fact.
 		for(Term current : terms) {
 			for(Entry<Character, Constant> on : current.vars.entrySet()) {
 				// Adds this variable and power to fact if it is negative and fact doen't already have it.
@@ -425,7 +437,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 			Expression add = new Expression(fact);
 			ans.add(add);
 		}
-		// Divides the expression by fact inorder and proceeds to factor that.
+		// Divides the expression by fact in order and proceeds to factor that.
 		Expression remaining = divide(new Expression(fact));
 		final Constant two = new Constant(2);
 		// Checks to see if this is a quadratic.
@@ -442,7 +454,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 			}
 			// Looks for the a b and c of the quadratic equation.
 			Expression a = new Expression(), b = new Expression(), c = new Expression();
-			// Goes through each term and adds the coeff of factBy to the proper variable a,b, or c
+			// Goes through each term and adds the coeff of factBy to the proper variable a, b, or c.
 			for(Term current : remaining.terms) {
 				Term noVar = current.clone();
 				Constant pow = noVar.vars.remove(factBy);
@@ -455,7 +467,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 				}
 			}
 			final Expression expTwo = new Expression(new Term(two));
-			// Plugs a,b and c into the quadratic equation
+			// Plugs a, b, and c into the quadratic formula.
 			Term discrim = new Term(Constant.ONE.clone());
 			// Puts b^2-4ac in to a square root
 			discrim.addExponent(b.raise(expTwo).subtract(new Expression(new Constant(4)).multiply(a.multiply(c))),
@@ -496,7 +508,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 
 	/**
 	 * Solves the Expression for each variable as best as possible.
-	 * @return An array of solutions, one for each variable.
+	 * @return A HashSet of solutions, one for each variable.
 	 * @throws NotEquation If the Expression is not an Equation.
 	 */
 	public HashSet<Solution> solve() throws NotEquation {
@@ -563,23 +575,24 @@ public class Expression implements Comparable<Expression>, Serializable {
 	}
 
 	/**
-	 * Solves a factor for a single variable. This method is only capable of solving Expressions where iso is raised to a single unique power.
-	 * @param iso The variable to be solved for
-	 * @return What iso is equal to. Null if iso is not in the Expression
+	 * Solves a factor for a single variable. This method is only capable of solving Expressions where iso is raised to a
+	 * single unique power.
+	 * @param iso The variable to be solved for.
+	 * @return What iso is equal to. Null if iso is not in the Expression.
 	 * @throws NotAbleToSolve If this algorithm is not able to solve the equation.
 	 */
 	private HashSet<Expression> solveFact(char iso) throws NotAbleToSolve {
 		// Checks to see how many unique powers of iso are in it.
 		Constant firstPow = null, secondPow = null;
 		boolean inUndistr = false;
-		// Goes through each term to find its power of iso
+		// Goes through each term to find its power of iso.
 		for(Term current : terms) {
 			Constant pow = current.vars.get(iso);
 			if(pow == null) {
 				pow = new Constant();
 			}
 			// Attempts to see if we have not found a first power yet or this is the same as it. If so
-			// sets it as first, else tries the same with second, and if that fails it can't be solved with this
+			// sets it as first, else tries the same with second, and if that fails it can't be solved with this.
 			if(firstPow == null || pow.equals(firstPow)) {
 				firstPow = pow;
 			} else if(secondPow == null || pow.equals(secondPow)) {
@@ -676,7 +689,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 		if(isoIn == null) {
 			return new HashSet<>(Collections.singleton(retrn));
 		} else {
-			// Roots both sides to get rid of the exponent of isoIn, then moves it back to the same side
+			// Roots both sides to get rid of the exponent of isoIn, then moves it back to the same side.
 			retrn = retrn.raise(isoIn.getValue().invert()).multiply(NEGATIVE);
 			// Puts retrn into the same Expression as isoIn's base, to attempt to solve it again.
 			Expression toSolve = isoIn.getKey().clone().add(retrn);
@@ -685,7 +698,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 				Solution solvedIsoIn = toSolve.solveFor(iso);
 				return new HashSet<>(solvedIsoIn.value);
 			} catch(NotAbleToSolve e) {
-				throw new NotAbleToSolve("The expression "+ iso +" is in was unable to be solved.", e);
+				throw new NotAbleToSolve("The expression " + iso + " is in was unable to be solved.", e);
 			}
 		}
 	}
@@ -728,7 +741,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Comparable#compareTo(java.lang.Object)
 	 */
 	@Override
@@ -757,7 +770,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
@@ -767,7 +780,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
@@ -823,19 +836,20 @@ public class Expression implements Comparable<Expression>, Serializable {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see java.lang.Object#clone()
 	 */
 	@Override
 	@SuppressWarnings("unchecked")
 	public Expression clone() {
-		Expression a = new Expression((Collection<Term>)terms.clone(),isEquation);
+		Expression a = new Expression((Collection<Term>)terms.clone(), isEquation);
 		a.terms.replaceAll(Term::clone);
 		return a;
 	}
 
 	/**
 	 * Class to sort Terms by the power of a certain variable.
+	 *
 	 * @author Luke Senseney
 	 */
 	public static final class SortByChar implements Comparator<Term> {

@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 
 /**
  * Class representing a mathematical term.
- * 
+ *
  * @author Luke Senseney
  */
 public class Term implements Comparable<Term>, Serializable {
@@ -31,7 +31,7 @@ public class Term implements Comparable<Term>, Serializable {
 	 */
 	TreeMap<Character, Constant> vars;
 	/**
-	 * A Map to represent things which can't be distributed, such as (x+3)^(1/2), each key is raised to its 
+	 * A Map to represent things which can't be distributed, such as (x+3)^(1/2), each key is raised to its
 	 * value and then multiplied into this.
 	 */
 	TreeMap<Expression, Expression> undistr;
@@ -99,7 +99,7 @@ public class Term implements Comparable<Term>, Serializable {
 		}
 		return level;
 	}
-	
+
 	/**
 	 * Creates a new Term from a String. Garbage in, Garbage out; if the String is not a correctly
 	 * formated Term, will attempt to read. Cannot read \u221a, use ^(1/2).
@@ -261,7 +261,7 @@ public class Term implements Comparable<Term>, Serializable {
 	 * Creates a new Term from a Constant, map of variables, and a map of Expressions.
 	 * @param newCoeff Constant that becomes the coefficient of the Term.
 	 * @param newVars Map that becomes the variables of the Term.
-	 * @param newUndistr Map of Expression that becomes 
+	 * @param newUndistr Map of Expression that becomes
 	 */
 	public Term(Constant newCoeff, Map<Character, Constant> newVars, Map<Expression, Expression> newUndistr) {
 		coeff = newCoeff;
@@ -491,7 +491,7 @@ public class Term implements Comparable<Term>, Serializable {
 		}
 		return false;
 	}
-	
+
 	/*
 	 * (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
@@ -612,7 +612,8 @@ public class Term implements Comparable<Term>, Serializable {
 	 * @return this/divisor
 	 */
 	public Term divide(Term divisor) {
-		return multiply(divisor.negate());
+		System.out.println("I've gotten here.");
+		return multiply(divisor.invert());
     }
 
 	/**
@@ -667,6 +668,27 @@ public class Term implements Comparable<Term>, Serializable {
 		var.remove(PI);
 		return var;
 	}
+
+	/**
+     * Evaluates the Expression/function at the given Constant and returns the value.
+     * @param value The x-coordinate where the function is being evaluated.
+     * @return The y-coordinate of the function at the given x-coordinate.
+     */
+    public void evaluate(char variable, Constant value) {
+        Constant exponent = vars.get(variable);
+        if(exponent != null) {
+            if(value.equals(new Constant()) && (exponent.doubleValue() < 0)) {
+                throw new ArithmeticException("Tried to sub in zero for a negative exponenet. Support for infinity may come"
+                        + "later.");
+            }
+            coeff = coeff.multiply(coeff.raise(exponent));
+        }
+        for(Entry<Expression, Expression> entry : undistr.entrySet()) {
+            entry.getValue().evaluate(variable, value);
+            entry.getKey().evaluate(variable, value);
+        }
+        simplifyTerm();
+    }
 
 	/*
 	 * (non-Javadoc)
