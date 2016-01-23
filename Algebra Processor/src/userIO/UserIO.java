@@ -40,7 +40,6 @@ import lang.Term;
  * The default GUI for the AlgebraProcessor.
  * 
  * @author Luke Senseney
- *
  */
 public class UserIO extends JFrame implements ActionListener
 {
@@ -273,7 +272,7 @@ public class UserIO extends JFrame implements ActionListener
 			// Creates an Expression and factors it, then if it is a equation, solves it.
 			boolean appro=approx.getSelectedItem().equals("Exact");
 			Expression exp=new Expression(input.getText());
-			output.setText("Standand Form:"+(appro?exp:exp.approx().toStringDecimal(digits.getNumber()))+"\n");
+			output.setText("Standard Form:"+(appro?exp:exp.approx().toStringDecimal(digits.getNumber()))+"\n");
 			output.append("Factored:");
 			ArrayList<Expression> facts=exp.factor();
 			for(Expression fact:facts)
