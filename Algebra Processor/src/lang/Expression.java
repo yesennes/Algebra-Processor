@@ -208,15 +208,15 @@ public class Expression implements Comparable<Expression>, Serializable {
 		}
 		Expression retrn = clone();
 		// Multiply expression by itself one times 1 less than the absolute value of the numerator of pow.
-		for(BigInteger i = pow.numerator.abs(); i.compareTo(BigInteger.ONE) > 0; i = i.subtract(BigInteger.ONE)) {
+		for(BigInteger i = pow.getNumerator().abs(); i.compareTo(BigInteger.ONE) > 0; i = i.subtract(BigInteger.ONE)) {
 			retrn = retrn.multiply(this);
 		}
 		// If pow is negative or it has a denominator, this cannot be distributed, so it needs to be in the undistr of a
 		// Term. This packages it into a term.
-		if(pow.numerator.compareTo(BigInteger.ZERO) < 0 || pow.denominator.compareTo(BigInteger.ONE) > 0) {
+		if(pow.getNumerator().compareTo(BigInteger.ZERO) < 0 || pow.getDenominator().compareTo(BigInteger.ONE) > 0) {
 			TreeMap<Expression, Expression> d = new TreeMap<>();
 			// sets the numerator of pow to 1 or -1 depending on sign.
-			pow.numerator = pow.numerator.compareTo(BigInteger.ZERO) < 0 ? BigInteger.ONE.negate() : BigInteger.ONE;
+			pow.setNumerator(pow.getNumerator().compareTo(BigInteger.ZERO) < 0 ? BigInteger.ONE.negate() : BigInteger.ONE);
 			d.put(retrn, new Expression(new Term(pow)));
 			return new Expression(new Term(Constant.ONE.clone(), new TreeMap<>(), d));
 		}
@@ -354,12 +354,13 @@ public class Expression implements Comparable<Expression>, Serializable {
      * Evaluates the Expression/function at the given Constant.
      * @param x The x-coordinate where the function is being evaluated.
      */
-    public void evaluate(char variable, Constant value) {
-        for (Term term : terms) {
-            term.evaluate(variable, value);
-        }
-        simplifyTerms();
-    }
+    //TODO code evauluate in term.
+    //public void evaluate(char variable, Constant value) {
+    //    for (Term term : terms) {
+    //        term.evaluate(variable, value);
+    //    }
+    //    simplifyTerms();
+    //}
 
     /**
 	 * Combines like Terms, removes 0 terms, and distributes what it can.
@@ -372,8 +373,8 @@ public class Expression implements Comparable<Expression>, Serializable {
 			while(iter.hasNext()) {
 				Entry<Expression, Expression> current = iter.next();
 				if(current.getValue().isConstant()
-						&& (current.getValue().terms.get(0).coeff.denominator.equals(BigInteger.ONE)
-								|| current.getValue().terms.get(0).coeff.numerator.compareTo(BigInteger.ONE) > 0)) {
+						&& (current.getValue().terms.get(0).coeff.getDenominator().equals(BigInteger.ONE)
+								|| current.getValue().terms.get(0).coeff.getNumerator().compareTo(BigInteger.ONE) > 0)) {
 					iter.remove();
 					terms.addAll(new Expression(terms.get(i)).multiply(current.getKey()
 							.raise(current.getValue().terms.get(0).coeff)).terms);

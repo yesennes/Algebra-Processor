@@ -1,4 +1,5 @@
 package lang;
+import java.util.NavigableMap;
 
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -132,10 +133,10 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 
 	/**
 	 * Getter for the roots of this Constant.
-	 * @return The roots of this Constant.
+	 * @return The roots of this Constant, unmodifiable.
 	 */
-	public TreeMap<Integer, Constant> getRoots() {
-	    return roots;
+	public NavigableMap<Integer, Constant> getRoots() {
+	    return Collections.unmodifiableNavigableMap(roots);
 	}
 
 	/**
@@ -215,10 +216,8 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 	 * @param in The constant to be in the root
 	 */
 	public void addRoot(Integer root, Constant in) {
-		Constant was = roots.put(root, in);
-		if(was != null) {
-			in.multiply(was);
-		}
+		roots.merge(root, in, Constant::add);
+        simplify();
 	}
 
 	/**

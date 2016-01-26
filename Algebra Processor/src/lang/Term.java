@@ -310,27 +310,27 @@ public class Term implements Comparable<Term>, Serializable {
 			undistr = toBe.undistr;
 		}
 		// Looks in the coeff to see if any (-1)^(1/2) can be turned in to i.
-		Constant inRoot = coeff.roots.get(new Constant(2));
-		if(inRoot != null && inRoot.numerator.compareTo(BigInteger.ZERO) < 0) {
-			coeff.roots.get(new Constant(2)).numerator = coeff.roots.get(new Constant(2)).numerator.negate();
+		Constant inRoot = coeff.getRoots().get(new Constant(2));
+		if(inRoot != null && inRoot.getNumerator().compareTo(BigInteger.ZERO) < 0) {
+			inRoot.setNumerator(inRoot.getNumerator().negate());
 			addExponent(interImag, Constant.ONE);
 		}
 		// Looks at the power of i for anything that can be simplified. i.e. takes i^2 and turns it to -1.
 		Constant imaginary = vars.get(interImag);
 		if(imaginary != null) {
-			switch(imaginary.numerator.mod(BigInteger.valueOf(4)).intValue()) {
+			switch(imaginary.getNumerator().mod(BigInteger.valueOf(4)).intValue()) {
 				case 0:
-					imaginary.numerator = BigInteger.ZERO;
+					imaginary.setNumerator(BigInteger.ZERO);
 					break;
 				case 1:
-					imaginary.numerator = BigInteger.ONE;
+					imaginary.setNumerator(BigInteger.ONE);
 					break;
 				case 2:
-					imaginary.numerator = BigInteger.ZERO;
+					imaginary.setNumerator(BigInteger.ZERO);
 					coeff = coeff.negate();
 					break;
 				case 3:
-					imaginary.numerator = BigInteger.ONE;
+					imaginary.setNumerator(BigInteger.ONE);
 					coeff = coeff.negate();
 			}
 		}
@@ -352,7 +352,7 @@ public class Term implements Comparable<Term>, Serializable {
 	 * @return If the Terms are like, true, else false.
 	 */
 	public static boolean isLikeTerm(Term a, Term b) {
-		return a.vars.equals(b.vars) && a.undistr.equals(b.undistr) && a.coeff.roots.equals(b.coeff.roots);
+		return a.vars.equals(b.vars) && a.undistr.equals(b.undistr) && a.coeff.getRoots().equals(b.coeff.getRoots());
 	}
 
 	/**
@@ -682,13 +682,13 @@ public class Term implements Comparable<Term>, Serializable {
 		boolean isConst = isConstant();
 		// If the numerator of this term is not 1 or -1, or this term is just 1 or -1, add the numerator of coeff to
 		// the start of this term. If the numerator is -1 and there are other variables, add a minus sign to the start.
-		if(coeff.numerator.equals(BigInteger.ONE.negate()) && !isConst) {
+		if(coeff.getNumerator().equals(BigInteger.ONE.negate()) && !isConst) {
 			output.append("-");
-		} else if(!coeff.numerator.equals(BigInteger.ONE) || isConst) {
-			output.append(coeff.numerator);
+		} else if(!coeff.getNumerator().equals(BigInteger.ONE) || isConst) {
+			output.append(coeff.getNumerator());
 		}
 		// Goes through the roots of the coeff, generates the proper char(s) for it and adds them to output.
-		for(Entry<Integer, Constant> current : coeff.roots.entrySet()) {
+		for(Entry<Integer, Constant> current : coeff.getRoots().entrySet()) {
 			if(current.getKey() == 2) {
 				output.append("\u221a");
 			} else if(current.getKey() == 3) {
@@ -711,22 +711,22 @@ public class Term implements Comparable<Term>, Serializable {
 		// parentheses around it.
 		for(Entry<Expression, Expression> current : undistr.entrySet()) {
 			Term base = current.getKey().terms.get(0);
-			if(current.getKey().terms.size() == 1 && base.coeff.denominator.equals(BigInteger.ONE)
-					&& (base.coeff.numerator.equals(BigInteger.ONE) || base.vars.size() == 0) && base.undistr.size() == 0) {
+			if(current.getKey().terms.size() == 1 && base.coeff.getDenominator().equals(BigInteger.ONE)
+					&& (base.coeff.getNumerator().equals(BigInteger.ONE) || base.vars.size() == 0) && base.undistr.size() == 0) {
 				output.append(current.getKey()).append('^');
 			} else {
 				output.append('(').append(current.getKey()).append(")^");
 			}
 			Term pow = current.getValue().terms.get(0);
-			if(current.getValue().terms.size() == 1 && pow.coeff.denominator.equals(BigInteger.ONE)
-					&& (pow.coeff.numerator.equals(BigInteger.ONE) || pow.vars.size() == 0) && pow.undistr.size() == 0) {
+			if(current.getValue().terms.size() == 1 && pow.coeff.getDenominator().equals(BigInteger.ONE)
+					&& (pow.coeff.getNumerator().equals(BigInteger.ONE) || pow.vars.size() == 0) && pow.undistr.size() == 0) {
 				output.append(current.getValue());
 			} else {
 				output.append('(').append(current.getValue()).append(")");
 			}
 		}
-		if(!coeff.denominator.equals(BigInteger.ONE)) {
-			output.append("/").append(coeff.denominator);
+		if(!coeff.getDenominator().equals(BigInteger.ONE)) {
+			output.append("/").append(coeff.getDenominator());
 		}
 		// Replaces all of the substitute for the imaginary unit and e with the characters that represent it.
 		return output.toString().replace(String.valueOf(interImag), IMAG_UNIT).replace(String.valueOf(interE), E);
@@ -747,13 +747,13 @@ public class Term implements Comparable<Term>, Serializable {
 		boolean isConst = isConstant();
 		// If the numerator of this term is not 1 or -1, or this term is just 1 or -1, add the numerator of coeff
 		// to the start of this term. If the numerator is -1 and there are other variables, add a minus sign to the start.
-		if(coeff.numerator.equals(BigInteger.ONE.negate()) && !isConst && coeff.denominator.equals(BigInteger.ONE)) {
+		if(coeff.getNumerator().equals(BigInteger.ONE.negate()) && !isConst && coeff.getDenominator().equals(BigInteger.ONE)) {
 			output.append("-");
-		} else if(!coeff.numerator.equals(BigInteger.ONE) || isConst) {
+		} else if(!coeff.getNumerator().equals(BigInteger.ONE) || isConst) {
 			output.append(format.format(coeff.doubleValue()));
 		}
 		// Goes through the roots of the coeff, generates the proper char(s) for it and adds them to output.
-		for(Entry<Integer, Constant> current : coeff.roots.entrySet()) {
+		for(Entry<Integer, Constant> current : coeff.getRoots().entrySet()) {
 			switch(current.getKey()) {
 				case 2:
 					output.append("\u221a");
@@ -780,15 +780,15 @@ public class Term implements Comparable<Term>, Serializable {
 		// adds parentheses around it.
 		for(Entry<Expression, Expression> current : undistr.entrySet()) {
 			Term base = current.getKey().terms.get(0);
-			if(current.getKey().terms.size() == 1 && base.coeff.denominator.equals(BigInteger.ONE) &&
-					(base.coeff.numerator.equals(BigInteger.ONE) || base.vars.size() == 0) && base.undistr.size() == 0) {
+			if(current.getKey().terms.size() == 1 && base.coeff.getDenominator().equals(BigInteger.ONE) &&
+					(base.coeff.getNumerator().equals(BigInteger.ONE) || base.vars.size() == 0) && base.undistr.size() == 0) {
 				output.append(current.getKey().toStringDecimal(places)).append('^');
 			} else {
 				output.append('(').append(current.getKey().toStringDecimal(places)).append(")^");
 			}
 			Term pow = current.getValue().terms.get(0);
-			if(current.getValue().terms.size() == 1 && pow.coeff.denominator.equals(BigInteger.ONE) &&
-					(pow.coeff.numerator.equals(BigInteger.ONE) || pow.vars.size() == 0) && pow.undistr.size() == 0) {
+			if(current.getValue().terms.size() == 1 && pow.coeff.getDenominator().equals(BigInteger.ONE) &&
+					(pow.coeff.getNumerator().equals(BigInteger.ONE) || pow.vars.size() == 0) && pow.undistr.size() == 0) {
 				output.append(current.getValue().toStringDecimal(places));
 			} else {
 				output.append('(').append(current.getValue().toStringDecimal(places)).append(")");
@@ -829,10 +829,10 @@ public class Term implements Comparable<Term>, Serializable {
 			appro *= Math.pow(Math.E, power.doubleValue());
 		}
 		// approximates all of the roots.
-		for(Map.Entry<Integer, Constant> cur : retrn.coeff.roots.entrySet()) {
+		for(Map.Entry<Integer, Constant> cur : retrn.coeff.getRoots().entrySet()) {
 			appro *= Math.pow(cur.getValue().doubleValue(), 1. / cur.getKey());
 		}
-		retrn.coeff.roots.clear();
+		retrn.coeff.getRoots().clear();
 		retrn.coeff = retrn.coeff.multiply(new Constant(appro));
 		return retrn;
 	}
