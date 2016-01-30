@@ -31,7 +31,6 @@ import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
-
 import lang.AlgebraicFunction;
 import lang.Constant;
 import lang.Expression;
@@ -74,8 +73,8 @@ public class UserInterface extends Application implements Serializable {
         enter.setOnAction(e -> enter());
 
         algebra = new TextField();
-        algebra.setOnKeyReleased(event -> {
-            if (event.getCode() == KeyCode.ENTER) {
+        algebra.setOnKeyReleased(e -> {
+            if (e.getCode() == KeyCode.ENTER) {
                 enter();
             }
         });
@@ -93,7 +92,7 @@ public class UserInterface extends Application implements Serializable {
         digits.setDisable(approx.getValue().equals("Exact"));
 
         Button settings = new Button("Settings");
-        settings.setOnAction(event -> {
+        settings.setOnAction(e -> {
             Stage set = new Stage();
             set.setTitle("Settings");
             set.setResizable(false);
@@ -104,7 +103,7 @@ public class UserInterface extends Application implements Serializable {
             Label firstLabel = new Label("Mode:");
             Label secondLabel = new Label("Precision:");
 
-            approx.setOnAction(clicked -> {
+            approx.setOnAction(event -> {
                 if (approx.getValue().equals("Exact")) {
                     descrip.setText("All non-rational numbers will be kept in as mathmatical constants and exponents.");
                     digits.setDisable(true);
@@ -114,11 +113,11 @@ public class UserInterface extends Application implements Serializable {
                 }
             });
 
-            digits.setOnMouseClicked(action -> {
+            digits.setOnMouseClicked(event -> {
                 ofDigits = digits.getValue();
-                descrip.setText("All non-rational numbers will be approximated to "
-                        + ((ofDigits == 0) ? "the nearest whole number." : ofDigits
-                                + ((ofDigits == 1) ? " place " : " places ") + "after the decimal."));
+                descrip.setText("All non-rational numbers will be approximated to " + ((ofDigits == 0)
+                        ? "the nearest whole number." : ofDigits + ((ofDigits == 1) ? " place " : " places ")
+                                + "after the decimal."));
             });
 
             first.getChildren().addAll(firstLabel, approx);
@@ -129,7 +128,7 @@ public class UserInterface extends Application implements Serializable {
         });
 
         Button help = new Button("?");
-        help.setOnAction(event -> {
+        help.setOnAction(e -> {
             Stage helper = new Stage();
             helper.setTitle("Help Menu");
             TextArea helpArea = new TextArea("\tWelcome to AlgebraProcessor Beta! Simply enter an expression or equation in "
@@ -160,30 +159,30 @@ public class UserInterface extends Application implements Serializable {
         });
 
         Button i = new Button(imagUnit);
-        i.setOnAction(event -> algebra.appendText(imagUnit));
+        i.setOnAction(e -> algebra.appendText(imagUnit));
 
         Button pi = new Button(String.valueOf(Term.PI));
-        pi.setOnAction(event -> algebra.appendText(String.valueOf(Term.PI)));
+        pi.setOnAction(e -> algebra.appendText(String.valueOf(Term.PI)));
 
-        Button e = new Button(Term.E);
-        e.setOnAction(event -> algebra.appendText(Term.E));
+        Button bE = new Button(Term.E);
+        bE.setOnAction(e -> algebra.appendText(Term.E));
 
         Button not = new Button("\u21C1");
-        not.setOnAction(event -> algebra.appendText("\u21C1"));
+        not.setOnAction(e -> algebra.appendText("\u21C1"));
 
         Button and = new Button("\u2227");
-        and.setOnAction(event -> algebra.appendText("\u2227"));
+        and.setOnAction(e -> algebra.appendText("\u2227"));
 
-        Button or = new Button("\u2227");
-        or.setOnAction(event -> algebra.appendText("\u2227"));
+        Button or = new Button("\u2228");
+        or.setOnAction(e -> algebra.appendText("\u2228"));
 
-        Button bIf = new Button("\u2228");
-        bIf.setOnAction(event -> algebra.appendText("\u2228"));
+        Button bIf = new Button("\u2192");
+        bIf.setOnAction(e -> algebra.appendText("\u2192"));
 
         Button iff = new Button("\u2194");
-        iff.setOnAction(event -> algebra.appendText("\u2194"));
+        iff.setOnAction(e -> algebra.appendText("\u2194"));
 
-        ToolBar buttons = new ToolBar(i, pi, e, not, and, or, bIf, iff);
+        ToolBar buttons = new ToolBar(i, pi, bE, not, and, or, bIf, iff);
 
         top.getChildren().addAll(algebra, enter);
         topAnchor.getChildren().addAll(algebra, enter);
@@ -197,7 +196,6 @@ public class UserInterface extends Application implements Serializable {
         bottomAnchor.getChildren().addAll(help, settings);
         AnchorPane.setLeftAnchor(settings, 4.0);
         AnchorPane.setRightAnchor(help, 4.0);
-
 
         main.setCenter(output);
         main.setTop(topmost);
