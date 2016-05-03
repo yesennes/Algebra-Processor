@@ -3,8 +3,9 @@ package lang;
 import java.io.Serializable;
 
 /**
- * Class representation of an algebraic matrix which is R x C and contains T
- * data. Matrices can also be vectors (where C = 1).
+ * Class representation of an algebraic matrix which is R x C. Matrix operations
+ * add, subtract, multiply, invert, and compute determinant are valid.
+ * Matrices can also be vectors (where C = 1).
  *
  * @author Nikola Istvanic, Mason Liu
  * @version 1.0
@@ -18,11 +19,11 @@ public class Matrix implements Serializable {
     /**
      * Number of rows in this matrix.
      */
-    private int row;
+    public int row;
     /**
      * Number of columns in this matrix.
      */
-    private int col;
+    public int col;
 
     /**
      * Zero matrix constructor which takes the number of matrix rows and
@@ -68,7 +69,7 @@ public class Matrix implements Serializable {
      * @return A matrix whose entries are the sums of the respective entries of
      * this matrix and the parameter matrix.
      */
-    public Matrix add(Matrix addend) {
+    public Matrix add(Matrix addend) throws IllegalDimensionException {
         if (addend.row != row || addend.col != col) {
             throw new IllegalDimensionException("Cannot add due to nonmatching "
                     + (addend.row != row ? "row" : "column") + " dimensions.");
@@ -92,11 +93,11 @@ public class Matrix implements Serializable {
      * @return A matrix whose entries are the differences of the respective
      * entries of this matrix and the parameter matrix.
      */
-    public Matrix subtract(Matrix subtrahend) {
+    public Matrix subtract(Matrix subtrahend) throws IllegalDimensionException {
         if (subtrahend.row != row || subtrahend.col != col) {
-            throw new IllegalDimensionException("Cannot add due to nonmatching "
-                    + (subtrahend.row != row ? "row" : "column")
-                    + " dimensions.");
+            throw new IllegalDimensionException("Cannot subtract due to "
+                    + "nonmatching " + (subtrahend.row != row
+                        ? "row" : "column") + " dimensions.");
         }
         Constant[][] difference = new Constant[row][col];
         for (int i = 0; i < row; i++) {
@@ -116,12 +117,13 @@ public class Matrix implements Serializable {
      * @param multiplicand The matrix being multiplied by this matrix.
      * @return The product of these two matrices.
      */
-    public Matrix multiply(Matrix multiplicand) {
+    public Matrix multiply(Matrix multiplicand)
+            throws IllegalDimensionException {
         if (multiplicand.row != col) {
             throw new IllegalDimensionException("The row dimension does not "
                     + "match the column dimension.");
         }
-        Matrix product = new Matrix(row, col);
+        Matrix product = new Matrix(row, multiplicand.col);
         for (int i = 0; i < row; i++) {
             for (int j = 0; j < multiplicand.col; j++) {
                 for (int k = 0; k < col; k++) {
@@ -139,7 +141,7 @@ public class Matrix implements Serializable {
      * @throws IllegalDimensionException If the matrix is not square.
      * @return The Constant value of the determinant of this matrix.
      */
-    public Constant determinant() {
+    public Constant determinant() throws IllegalDimensionException {
         if (row != col) {
             throw new IllegalDimensionException("Can only compute determinant "
                     + "of square matrix.");
@@ -166,7 +168,7 @@ public class Matrix implements Serializable {
      * @throws IllegalDimensionException If a non-square matrix is used.
      * @return The inverse of this matrix.
      */
-    public Matrix inverse() {
+    public Matrix inverse() throws IllegalDimensionException {
         if (row != col) {
             throw new IllegalDimensionException("Can only compute inverse "
                     + "of square matrix.");
@@ -320,6 +322,8 @@ public class Matrix implements Serializable {
 
     /**
      * Interchanges two rows of a matrix.
+     * @throws IllegalArgumentException If the matrix parameter is null or the
+     * rows entered are greater than the number the matrix has or are negative.
      * @param matrix The matrix to perform operations on.
      * @param r1 The first row.
      * @param r2 The second row.
@@ -339,6 +343,8 @@ public class Matrix implements Serializable {
 
     /**
      * Scales one row of a matrix.
+     * @throws IllegalArgumentException If the matrix entered is null or if the
+     * row parameter is below zero or above the number of columns in the matrix.
      * @param matrix The matrix to perform operations on.
      * @param scalar The constant to scale by.
      * @param row The row to scale.
@@ -429,6 +435,12 @@ public class Matrix implements Serializable {
         return hashCode.intValue();
     }
 
+    /**
+     * Equals method that determines if two matrices are equal, based on the
+     * values in each matrix.
+     * @param object The other matrix.
+     * @return True if the matrices are equal; false if they are not.
+     */
     @Override
     public boolean equals(Object object) {
         if (!(object instanceof Matrix)) {
@@ -472,6 +484,7 @@ public class Matrix implements Serializable {
             }
             toString.append("| \n");
         }
+        toString.setLength(toString.length() - 2);
         return toString.toString();
     }
 }
