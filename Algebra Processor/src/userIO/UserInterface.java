@@ -12,6 +12,8 @@ import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -130,13 +132,14 @@ public class UserInterface extends Application implements Serializable {
             } catch (MathFormatException format) {
                 output.setText("There was an error in your formatting. "
                         + format.getMessage()
-                        + " If you think what you entered was formatted correctly,"
-                        + " please email what you entered to yesennes@gmail.com");
+                        + " If you think what you entered was formatted "
+                        + "correctly, please email what you entered to "
+                        + "yesennes@gmail.com");
             } catch (OverflowException over) {
                 output.setText("A number was to big. " + over.getMessage());
             } catch (Exception a) {
-                output.setText("An error occured. Please email what you entered "
-                        + "to yesennes@gmail.com");
+                output.setText("An error occured. Please email what you "
+                        + "entered to yesennes@gmail.com");
                 a.printStackTrace();
             }
         });
@@ -204,18 +207,12 @@ public class UserInterface extends Application implements Serializable {
         matrix.setOnAction(e -> {
             Stage helper = new Stage();
             helper.setTitle("Matrix Menu");
-            TextField console = new TextField();
-            console.setEditable(false);
-            console.setText(
-                    "Welcome to Matrix Menu. First click"
-                    + " \"Create Matrix\" button to create "
-                    + "a matrix to perform operations on.");
             VBox window = new VBox(5);
 
             Button create = new Button("Create Matrix");
             create.setOnAction(a -> {
-                console.clear();
                 Stage adding = new Stage();
+                adding.setTitle("Create Matrix");
                 adding.setMinHeight(400);
                 adding.setMaxWidth(500);
                 boolean[] created = {false};
@@ -270,10 +267,16 @@ public class UserInterface extends Application implements Serializable {
                         }
 
                     } catch (NumberFormatException exception) {
-                        console.setText("Dimension did not contain only integer"
-                                + " values.");
                         created[0] = false;
                         displayed[0] = false;
+                        Alert alert = new Alert(AlertType.INFORMATION);
+                        alert.setTitle("Error");
+                        alert.setHeaderText("Template " + name.getText()
+                            + " not created.");
+                        alert.setContentText(
+                                "Dimension did not contain only integer"
+                                + "values.");
+                        alert.showAndWait();
                     }
                 });
 
@@ -292,8 +295,13 @@ public class UserInterface extends Application implements Serializable {
                             displayed[0] = false;
                             matrices.put(name.getText(), new Matrix(temp));
                         } catch (NumberFormatException exception) {
-                            console.setText("A value did not contain an "
+                            Alert alert = new Alert(AlertType.INFORMATION);
+                            alert.setTitle("Error");
+                            alert.setHeaderText("Matrix " + name.getText()
+                                    + " not created.");
+                            alert.setContentText("A value did not contain an "
                                     + "integer. Matrix not added.");
+                            alert.showAndWait();
                         }
                     }
                     adding.close();
@@ -315,10 +323,12 @@ public class UserInterface extends Application implements Serializable {
             Button view = new Button("View");
             view.setOnAction(s -> {
                 if (matrices.size() == 0) {
-                    console.setText("No matrices. "
-                            + "Click \"Create Matrix\" button.");
+                    Alert alert = new Alert(AlertType.INFORMATION);
+                    alert.setTitle("No Matrices");
+                    alert.setHeaderText("No matrices to view.");
+                    alert.setContentText("Click \"Create Matrix\" button.");
+                    alert.showAndWait();
                 } else {
-                    console.clear();
                     Stage viewing = new Stage();
                     viewing.setTitle("Matrices");
                     TextArea display = new TextArea();
@@ -338,10 +348,12 @@ public class UserInterface extends Application implements Serializable {
             Button add = new Button("Add");
             add.setOnAction(a -> {
                 if (matrices.size() == 0) {
-                    console.setText("No matrices. "
-                            + "Click \"Create Matrix\" button.");
+                    Alert alert = new Alert(AlertType.INFORMATION);
+                    alert.setTitle("No Matrices");
+                    alert.setHeaderText("No matrices to add.");
+                    alert.setContentText("Click \"Create Matrix\" button.");
+                    alert.showAndWait();
                 } else {
-                    console.clear();
                     Stage addition = new Stage();
                     addition.setTitle("Addition");
                     HBox scenery = new HBox();
@@ -402,8 +414,11 @@ public class UserInterface extends Application implements Serializable {
             Button subtract = new Button("Subtract");
             subtract.setOnAction(s -> {
                 if (matrices.size() == 0) {
-                    console.setText("No matrices. "
-                            + "Click \"Create Matrix\" button.");
+                    Alert alert = new Alert(AlertType.INFORMATION);
+                    alert.setTitle("No Matrices");
+                    alert.setHeaderText("No matrices to subtract.");
+                    alert.setContentText("Click \"Create Matrix\" button.");
+                    alert.showAndWait();
                 } else {
                     Stage subtraction = new Stage();
                     subtraction.setTitle("Subtraction");
@@ -467,8 +482,11 @@ public class UserInterface extends Application implements Serializable {
             Button multiply = new Button("Multiply");
             multiply.setOnAction(m -> {
                 if (matrices.size() == 0) {
-                    console.setText("No matrices. "
-                            + "Click \"Create Matrix\" button.");
+                    Alert alert = new Alert(AlertType.INFORMATION);
+                    alert.setTitle("No Matrices");
+                    alert.setHeaderText("No matrices to multiply.");
+                    alert.setContentText("Click \"Create Matrix\" button.");
+                    alert.showAndWait();
                 } else {
                     Stage multiplication = new Stage();
                     multiplication.setTitle("Multiplication");
@@ -532,8 +550,11 @@ public class UserInterface extends Application implements Serializable {
             Button gaussJordan = new Button("Gauss-Jordan");
             gaussJordan.setOnAction(g -> {
                 if (matrices.size() == 0) {
-                    console.setText("No matrices. "
-                            + "Click \"Create Matrix\" button.");
+                    Alert alert = new Alert(AlertType.INFORMATION);
+                    alert.setTitle("No Matrices");
+                    alert.setHeaderText("No matrices to solve.");
+                    alert.setContentText("Click \"Create Matrix\" button.");
+                    alert.showAndWait();
                 } else {
                     Stage gauss = new Stage();
                     gauss.setTitle("Gauss-Jordan Elimination");
@@ -574,8 +595,11 @@ public class UserInterface extends Application implements Serializable {
             Button factor = new Button("LU Factorization");
             factor.setOnAction(f -> {
                 if (matrices.size() == 0) {
-                    console.setText("No matrices. "
-                            + "Click \"Create Matrix\" button.");
+                    Alert alert = new Alert(AlertType.INFORMATION);
+                    alert.setTitle("No Matrices");
+                    alert.setHeaderText("No matrices to factorize.");
+                    alert.setContentText("Click \"Create Matrix\" button.");
+                    alert.showAndWait();
                 } else {
                     Stage factorization = new Stage();
                     factorization.setMinHeight(300);
@@ -619,8 +643,11 @@ public class UserInterface extends Application implements Serializable {
             Button determinant = new Button("Determinant");
             determinant.setOnAction(d -> {
                 if (matrices.size() == 0) {
-                    console.setText("No matrices. "
-                            + "Click \"Create Matrix\" button.");
+                    Alert alert = new Alert(AlertType.INFORMATION);
+                    alert.setTitle("No Matrices");
+                    alert.setHeaderText("No matrices to compute determinant.");
+                    alert.setContentText("Click \"Create Matrix\" button.");
+                    alert.showAndWait();
                 } else {
                     Stage determin = new Stage();
                     determin.setTitle("Determinant");
@@ -667,8 +694,11 @@ public class UserInterface extends Application implements Serializable {
             Button inverse = new Button("Inverse");
             inverse.setOnAction(i -> {
                 if (matrices.size() == 0) {
-                    console.setText("No matrices. "
-                            + "Click \"Create Matrix\" button.");
+                    Alert alert = new Alert(AlertType.INFORMATION);
+                    alert.setTitle("No Matrices");
+                    alert.setHeaderText("No matrices to compute inverse.");
+                    alert.setContentText("Click \"Create Matrix\" button.");
+                    alert.showAndWait();
                 } else {
                     Stage determin = new Stage();
                     determin.setTitle("Inverse");
@@ -714,7 +744,6 @@ public class UserInterface extends Application implements Serializable {
 
             Button help = new Button("?");
             help.setOnAction(h -> {
-                console.clear();
                 Stage helpMenu = new Stage();
                 helpMenu.setTitle("Help Menu");
                 TextArea helpArea = new TextArea("\t Matrix menu where matrices"
@@ -739,7 +768,7 @@ public class UserInterface extends Application implements Serializable {
             });
             ToolBar buttons = new ToolBar(create, view, add, subtract,
                     multiply, gaussJordan, factor, determinant, inverse, help);
-            window.getChildren().addAll(buttons, console);
+            window.getChildren().addAll(buttons); // May add more to this.
             helper.setScene(new Scene(window));
             helper.show();
         });
