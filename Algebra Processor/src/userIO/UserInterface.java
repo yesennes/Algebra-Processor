@@ -17,11 +17,17 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.ToolBar;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -88,70 +94,9 @@ public class UserInterface extends Application implements Serializable {
      */
     private String mode = "Algebra";
     /**
-     * Label at the bottom of the processor which states the current mode.
+     * Menu always present at the top of the processor.
      */
-    private Label currentMode;
-    /**
-     * Buttons to be displayed based on which mode the processor is in.
-     */
-    private ToolBar buttons;
-    /**
-     * Button which appends the imaginary number i to the TextField in Algebra
-     * mode.
-     */
-    private Button imag;
-    /**
-     * Button which appends the symbol for pi to the TextField in Algebra mode.
-     */
-    private Button pi;
-    /**
-     * Button which appends the symbol for e to the TextField in Algebra mode.
-     */
-    private Button bE;
-    /**
-     * Button which appends the null set symbol to the Set mode TextField.
-     */
-    private Button nullSet;
-    /**
-     * Button used in Matrix mode to create matrices.
-     */
-    private Button create;
-    /**
-     * Button in Matrix mode to view matrices created thus far.
-     */
-    private Button view;
-    /**
-     * Button used only in Matrix mode to add two matrices together.
-     */
-    private Button add;
-    /**
-     * Button in Matrix mode to subtract two matrices.
-     */
-    private Button subtract;
-    /**
-     * Button used to multiply two matrices in Matrix mode.
-     */
-    private Button multiply;
-    /**
-     * Button used to solve a matrix in Matrix mode.
-     */
-    private Button gaussJordan;
-    /**
-     * Button in Matrix mode to factor a matrix.
-     */
-    private Button factor;
-    /**
-     * Button to find the determinant of a matrix.
-     */
-    private Button determinant;
-    /**
-     * Button to find the inverse of a matrix.
-     */
-    private Button inverse;
-    /**
-     * Help button for Matrix mode.
-     */
-    private Button matHelp;
+    private MenuBar menuBar = new MenuBar();
 
     /**
      * Method which creates a stage where the user may enter his or her
@@ -160,11 +105,7 @@ public class UserInterface extends Application implements Serializable {
      */
     @Override
     public void start(Stage stage) {
-        output = new TextArea();
-        output.setWrapText(true);
-        output.setEditable(false);
-
-        Button help = new Button("?");
+        MenuItem help = new MenuItem("Help");
         help.setOnAction(e -> {
             Stage helper = new Stage();
             helper.setTitle("Help Menu");
@@ -216,21 +157,27 @@ public class UserInterface extends Application implements Serializable {
             helper.show();
         });
 
-        imag = new Button(imagUnit);
+        MenuItem fullscreen = new MenuItem("Fullscreen");
+        fullscreen.setOnAction(e -> stage.setFullScreen(true));
+        fullscreen.setAccelerator(new KeyCodeCombination(KeyCode.F11));
+
+        output = new TextArea();
+        output.setWrapText(true);
+        output.setEditable(false);
+
+        Button imag = new Button(imagUnit);
         imag.setOnAction(e -> algebra.appendText(imagUnit));
 
-        pi = new Button(String.valueOf(Term.PI));
+        Button pi = new Button(String.valueOf(Term.PI));
         pi.setOnAction(e -> algebra.appendText(String.valueOf(Term.PI)));
 
-        bE = new Button(Term.E);
+        Button bE = new Button(Term.E);
         bE.setOnAction(e -> algebra.appendText(Term.E));
 
-        nullSet = new Button("Null Set");
-        nullSet.setOnAction(ns -> {
-            algebra.appendText("\u2205");
-        });
+        Button nullSet = new Button("Null Set");
+        nullSet.setOnAction(ns -> algebra.appendText("\u2205"));
 
-        create = new Button("Create Matrix");
+        Button create = new Button("Create Matrix");
         create.setOnAction(a -> {
             Stage adding = new Stage();
             adding.setTitle("Create Matrix");
@@ -337,7 +284,7 @@ public class UserInterface extends Application implements Serializable {
             adding.show();
         });
 
-        view = new Button("View");
+        Button view = new Button("View");
         view.setOnAction(s -> {
             if (matrices.size() == 0) {
                 Alert alert = new Alert(AlertType.INFORMATION);
@@ -355,385 +302,29 @@ public class UserInterface extends Application implements Serializable {
             }
         });
 
-        add = new Button("Add");
-        add.setOnAction(a -> {
-            if (matrices.size() == 0) {
-                Alert alert = new Alert(AlertType.INFORMATION);
-                alert.setTitle("No Matrices");
-                alert.setHeaderText("No matrices to add.");
-                alert.setContentText("Click \"Create Matrix\" button.");
-                alert.showAndWait();
-            } else {
-                Stage addition = new Stage();
-                addition.setTitle("Addition");
-                HBox scenery = new HBox();
-                VBox layers = new VBox();
-                TextArea display = new TextArea();
-                display.setFont(font);
-                display.setEditable(false);
-                Button[] buttons = new Button[Math.min(4, matrices.size())];
-                int i = 0, j = 0;
-                boolean[] first = {true};
-                Matrix[] firstMatrix = {null};
-                for (Map.Entry<String, Matrix> entry : matrices.entrySet()) {
-                    Button button = new Button(entry.getKey());
-                    button.setOnAction(c -> {
-                        try {
-                            if (first[0]) {
-                                first[0] = false;
-                                firstMatrix[0] = matrices.get(button.getText());
-                                display.setText(firstMatrix[0] + "\n\n");
-                            } else {
-                                first[0] = true;
-                                Matrix secondMatrix
-                                    = matrices.get(button.getText());
-                                String toString = secondMatrix.toString();
-                                display.appendText(toString + " + \n");
-                                for (int g = 0; g < 2 * secondMatrix.col + 5;
-                                        g++) {
-                                    display.appendText("-");
-                                }
-                                display.appendText("\n"
-                                        + firstMatrix[0].add(secondMatrix));
-                            }
-                        } catch (IllegalDimensionException iDE) {
-                            display.setText(iDE.getMessage());
-                        }
-                    });
-                    buttons[i] = button;
-                    i++;
-                    j++;
-                    if (i > 3) {
-                        layers.getChildren().addAll(new ToolBar(buttons));
-                        buttons = new Button[Math.min(4, matrices.size() - j)];
-                        i = 0;
-                    }
-                }
-                if (i != 0) {
-                    layers.getChildren().addAll(new ToolBar(buttons));
-                }
-                scenery.getChildren().addAll(layers, display);
-                addition.setScene(new Scene(scenery));
-                addition.show();
-            }
-        });
+        int i = 0;
+        Button add = new Button("Add");
+        setMatrixButton(add, i++);
 
-        subtract = new Button("Subtract");
-        subtract.setOnAction(s -> {
-            if (matrices.size() == 0) {
-                Alert alert = new Alert(AlertType.INFORMATION);
-                alert.setTitle("No Matrices");
-                alert.setHeaderText("No matrices to subtract.");
-                alert.setContentText("Click \"Create Matrix\" button.");
-                alert.showAndWait();
-            } else {
-                Stage subtraction = new Stage();
-                subtraction.setTitle("Subtraction");
-                HBox scenery = new HBox();
-                VBox layers = new VBox();
-                TextArea display = new TextArea();
-                display.setFont(font);
-                display.setEditable(false);
-                Button[] buttons = new Button[Math.min(4, matrices.size())];
-                int i = 0, j = 0;
-                boolean[] first = {true};
-                Matrix[] firstMatrix = {null};
-                for (Map.Entry<String, Matrix> entry : matrices.entrySet()) {
-                    Button button = new Button(entry.getKey());
-                    button.setOnAction(c -> {
-                        try {
-                            if (first[0]) {
-                                first[0] = false;
-                                firstMatrix[0] = matrices.get(button.getText());
-                                display.setText(firstMatrix[0] + "\n\n");
-                            } else {
-                                first[0] = true;
-                                Matrix secondMatrix = matrices.get(
-                                        button.getText());
-                                String toString = secondMatrix.toString();
-                                display.appendText(toString + " - \n");
-                                for (int g = 0; g < 2 * secondMatrix.col + 5;
-                                        g++) {
-                                    display.appendText("-");
-                                }
-                                display.appendText("\n" + firstMatrix[0]
-                                        .subtract(secondMatrix).toString());
-                            }
-                        } catch (IllegalDimensionException iDE) {
-                            display.setText(iDE.getMessage());
-                        }
-                    });
-                    buttons[i] = button;
-                    i++;
-                    j++;
-                    if (i > 3) {
-                        layers.getChildren().addAll(new ToolBar(buttons));
-                        buttons = new Button[Math.min(4, matrices.size() - j)];
-                        i = 0;
-                    }
-                }
-                if (i != 0) {
-                    layers.getChildren().addAll(new ToolBar(buttons));
-                }
-                scenery.getChildren().addAll(layers, display);
-                subtraction.setScene(new Scene(scenery));
-                subtraction.show();
-            }
-        });
+        Button subtract = new Button("Subtract");
+        setMatrixButton(subtract, i++);
 
-        multiply = new Button("Multiply");
-        multiply.setOnAction(m -> {
-            if (matrices.size() == 0) {
-                Alert alert = new Alert(AlertType.INFORMATION);
-                alert.setTitle("No Matrices");
-                alert.setHeaderText("No matrices to multiply.");
-                alert.setContentText("Click \"Create Matrix\" button.");
-                alert.showAndWait();
-            } else {
-                Stage multiplication = new Stage();
-                multiplication.setTitle("Multiplication");
-                HBox scenery = new HBox();
-                VBox layers = new VBox();
-                TextArea display = new TextArea();
-                display.setFont(font);
-                display.setEditable(false);
-                Button[] buttons = new Button[Math.min(4, matrices.size())];
-                int i = 0, j = 0;
-                boolean[] first = {true};
-                Matrix[] firstMatrix = {null};
-                for (Map.Entry<String, Matrix> entry : matrices.entrySet()) {
-                    Button button = new Button(entry.getKey());
-                    button.setOnAction(c -> {
-                        try {
-                            if (first[0]) {
-                                first[0] = false;
-                                firstMatrix[0] = matrices.get(button.getText());
-                                display.setText(firstMatrix[0].toString()
-                                        + "\n\n");
-                            } else {
-                                first[0] = true;
-                                Matrix secondMatrix
-                                    = matrices.get(button.getText());
-                                String toString = secondMatrix.toString();
-                                display.appendText(toString + " * \n");
-                                for (int g = 0; g < 2 * secondMatrix.col + 5;
-                                        g++) {
-                                    display.appendText("-");
-                                }
-                                display.appendText(
-                                        "\n" + firstMatrix[0].multiply(
-                                                secondMatrix).toString());
-                            }
-                        } catch (IllegalDimensionException iDE) {
-                            display.setText(iDE.getMessage());
-                        }
-                    });
-                    buttons[i] = button;
-                    i++;
-                    j++;
-                    if (i > 3) {
-                        layers.getChildren().addAll(new ToolBar(buttons));
-                        buttons = new Button[Math.min(4, matrices.size() - j)];
-                        i = 0;
-                    }
-                }
-                if (i != 0) {
-                    layers.getChildren().addAll(new ToolBar(buttons));
-                }
-                scenery.getChildren().addAll(layers, display);
-                multiplication.setScene(new Scene(scenery));
-                multiplication.show();
-            }
-        });
+        Button multiply = new Button("Multiply");
+        setMatrixButton(multiply, i++);
 
-        gaussJordan = new Button("Gauss-Jordan");
-        gaussJordan.setOnAction(g -> {
-            if (matrices.size() == 0) {
-                Alert alert = new Alert(AlertType.INFORMATION);
-                alert.setTitle("No Matrices");
-                alert.setHeaderText("No matrices to solve.");
-                alert.setContentText("Click \"Create Matrix\" button.");
-                alert.showAndWait();
-            } else {
-                Stage gauss = new Stage();
-                gauss.setTitle("Gauss-Jordan Elimination");
-                HBox scenery = new HBox();
-                VBox layers = new VBox();
-                TextArea display = new TextArea();
-                display.setFont(font);
-                display.setEditable(false);
-                Button[] buttons = new Button[Math.min(4, matrices.size())];
-                int i = 0, j = 0;
-                for (Map.Entry<String, Matrix> entry : matrices.entrySet()) {
-                    Button button = new Button(entry.getKey());
-                    button.setOnAction(c -> {
-                        Matrix jordan = matrices.get(button.getText());
-                        display.appendText(button.getText() + "\n" + jordan
-                                + "\n\n" + jordan.gaussJordan());
-                    });
-                    buttons[i] = button;
-                    i++;
-                    j++;
-                    if (i > 3) {
-                        layers.getChildren().addAll(new ToolBar(buttons));
-                        buttons = new Button[Math.min(4, matrices.size() - j)];
-                        i = 0;
-                    }
-                }
-                if (i != 0) {
-                    layers.getChildren().addAll(new ToolBar(buttons));
-                }
-                scenery.getChildren().addAll(layers, display);
-                gauss.setScene(new Scene(scenery));
-                gauss.show();
-            }
-        });
+        Button gaussJordan = new Button("Gauss-Jordan");
+        setMatrixButton(gaussJordan, i++);
 
-        factor = new Button("LU Factorization");
-        factor.setOnAction(f -> {
-            if (matrices.size() == 0) {
-                Alert alert = new Alert(AlertType.INFORMATION);
-                alert.setTitle("No Matrices");
-                alert.setHeaderText("No matrices to factorize.");
-                alert.setContentText("Click \"Create Matrix\" button.");
-                alert.showAndWait();
-            } else {
-                Stage factorization = new Stage();
-                factorization.setMinHeight(300);
-                factorization.setTitle("LU Factorization");
-                HBox scenery = new HBox();
-                VBox layers = new VBox();
-                TextArea display = new TextArea();
-                display.setFont(font);
-                display.setEditable(false);
-                Button[] buttons = new Button[Math.min(4, matrices.size())];
-                int i = 0, j = 0;
-                for (Map.Entry<String, Matrix> entry : matrices.entrySet()) {
-                    Button button = new Button(entry.getKey());
-                    button.setOnAction(c -> {
-                        Matrix factorize = matrices.get(button.getText());
-                        Matrix[] lu = factorize.LUFactorization();
-                        display.appendText("A:\n" + factorize + "\n\nP:\n"
-                                + lu[0] + "\n\nL:\n" + lu[1] + "\n\nU:\n"
-                                + lu[2]);
-                    });
-                    buttons[i] = button;
-                    i++;
-                    j++;
-                    if (i > 3) {
-                        layers.getChildren().addAll(new ToolBar(buttons));
-                        buttons = new Button[Math.min(4, matrices.size() - j)];
-                        i = 0;
-                    }
-                }
-                if (i != 0) {
-                    layers.getChildren().addAll(new ToolBar(buttons));
-                }
-                scenery.getChildren().addAll(layers, display);
-                factorization.setScene(new Scene(scenery));
-                factorization.show();
-            }
-        });
+        Button factor = new Button("LU Factorization");
+        setMatrixButton(factor, i++);
 
-        determinant = new Button("Determinant");
-        determinant.setOnAction(d -> {
-            if (matrices.size() == 0) {
-                Alert alert = new Alert(AlertType.INFORMATION);
-                alert.setTitle("No Matrices");
-                alert.setHeaderText("No matrices to compute determinant.");
-                alert.setContentText("Click \"Create Matrix\" button.");
-                alert.showAndWait();
-            } else {
-                Stage determin = new Stage();
-                determin.setTitle("Determinant");
-                HBox scenery = new HBox();
-                VBox layers = new VBox();
-                TextArea display = new TextArea();
-                display.setFont(font);
-                display.setEditable(false);
-                Button[] buttons = new Button[Math.min(4, matrices.size())];
-                int i = 0, j = 0;
-                for (Map.Entry<String, Matrix> entry : matrices.entrySet()) {
-                    Button button = new Button(entry.getKey());
-                    button.setOnAction(c -> {
-                        try {
-                            display.setText(button.getText() + "\n"
-                                    + matrices.get(button.getText())
-                                    + "\n\nDeterminant: " + matrices
-                                    .get(button.getText()).determinant());
-                        } catch (IllegalDimensionException iDE) {
-                            display.setText(iDE.getMessage());
-                        }
+        Button determinant = new Button("Determinant");
+        setMatrixButton(determinant, i++);
 
-                    });
-                    buttons[i] = button;
-                    i++;
-                    j++;
-                    if (i > 3) {
-                        layers.getChildren().addAll(new ToolBar(buttons));
-                        buttons = new Button[Math.min(4, matrices.size() - j)];
-                        i = 0;
-                    }
-                }
-                if (i != 0) {
-                    layers.getChildren().addAll(new ToolBar(buttons));
-                }
-                scenery.getChildren().addAll(layers, display);
-                determin.setScene(new Scene(scenery));
-                determin.show();
-            }
-        });
+        Button inverse = new Button("Inverse");
+        setMatrixButton(inverse, i++);
 
-        inverse = new Button("Inverse");
-        inverse.setOnAction(i -> {
-            if (matrices.size() == 0) {
-                Alert alert = new Alert(AlertType.INFORMATION);
-                alert.setTitle("No Matrices");
-                alert.setHeaderText("No matrices to compute inverse.");
-                alert.setContentText("Click \"Create Matrix\" button.");
-                alert.showAndWait();
-            } else {
-                Stage determin = new Stage();
-                determin.setTitle("Inverse");
-                HBox scenery = new HBox();
-                VBox layers = new VBox();
-                TextArea display = new TextArea();
-                display.setFont(font);
-                display.setEditable(false);
-                Button[] buttons = new Button[Math.min(4, matrices.size())];
-                int j = 0, k = 0;
-                for (Map.Entry<String, Matrix> entry : matrices.entrySet()) {
-                    Button button = new Button(entry.getKey());
-                    button.setOnAction(c -> {
-                        try {
-                            display.setText(button.getText() + "\n"
-                                    + matrices.get(button.getText())
-                                    + "\n\nInverse:\n" + matrices
-                                    .get(button.getText()).inverse());
-                        } catch (IllegalDimensionException iDE) {
-                            display.setText(iDE.getMessage());
-                        }
-
-                    });
-                    buttons[j] = button;
-                    j++;
-                    k++;
-                    if (j > 3) {
-                        layers.getChildren().addAll(new ToolBar(buttons));
-                        buttons = new Button[Math.min(4, matrices.size() - k)];
-                        j = 0;
-                    }
-                }
-                if (j != 0) {
-                    layers.getChildren().addAll(new ToolBar(buttons));
-                }
-                scenery.getChildren().addAll(layers, display);
-                determin.setScene(new Scene(scenery));
-                determin.show();
-            }
-        });
-
-        matHelp = new Button("?");
+        Button matHelp = new Button("?");
         matHelp.setOnAction(h -> {
             Stage helpMenu = new Stage();
             helpMenu.setTitle("Help Menu");
@@ -758,30 +349,12 @@ public class UserInterface extends Application implements Serializable {
             helpMenu.show();
         });
 
-        /*
-        Button not = new Button("\u21C1");
-        not.setOnAction(e -> algebra.appendText("\u21C1"));
-
-        Button and = new Button("\u2227");
-        and.setOnAction(e -> algebra.appendText("\u2227"));
-
-        Button or = new Button("\u2228");
-        or.setOnAction(e -> algebra.appendText("\u2228"));
-
-        Button bIf = new Button("\u2192");
-        bIf.setOnAction(e -> algebra.appendText("\u2192"));
-
-        Button iff = new Button("\u2194");
-        iff.setOnAction(e -> algebra.appendText("\u2194"));
-        */
-
-        Button settings = new Button("Settings");
-        settings.setOnAction(e -> {
+        MenuItem approximation = new MenuItem("Approximation");
+        approximation.setOnAction(e -> {
             Stage set = new Stage();
-            set.setTitle("Settings");
             set.setResizable(false);
             VBox setting = new VBox(5);
-            HBox first = new HBox(5), second = new HBox(5), third = new HBox(5);
+            HBox first = new HBox(5), second = new HBox(5);
 
             ObservableList<String> choices
                 = FXCollections.observableArrayList();
@@ -820,35 +393,164 @@ public class UserInterface extends Application implements Serializable {
                                         : " places ")
                                 + "after the decimal."));
             });
-
-            Label labelMode = new Label("Choose which mathematical mode the "
-                    + "processor should be in:");
-            ObservableList<String> modes = FXCollections.observableArrayList();
-            modes.addAll("Algebra", "Matrix", "Set"); // "Logic"
-            ComboBox<String> selectMode = new ComboBox<>(modes);
-            selectMode.setValue(mode);
-            selectMode.setOnAction(sm -> {
-                mode = selectMode.getValue();
-                currentMode.setText(mode);
-                generateLayout(stage, settings, help);
-                Platform.runLater(() -> set.requestFocus());
-                // To get the focus on the settings menu.
-            });
             first.getChildren().addAll(firstLabel, approx);
             second.getChildren().addAll(secondLabel, digits);
-            third.getChildren().addAll(labelMode, selectMode);
-            setting.getChildren().addAll(first, second, descrip, third);
+            setting.getChildren().addAll(first, second, descrip);
             set.setScene(new Scene(setting));
             set.show();
         });
 
-        buttons = new ToolBar(imag, pi, bE);
+        ToggleGroup tg = new ToggleGroup();
+        RadioMenuItem mAlgebra = new RadioMenuItem("Algebra");
+        mAlgebra.setSelected(true);
+        mAlgebra.setToggleGroup(tg);
+        mAlgebra.setOnAction(e -> {
+            mode = mAlgebra.getText();
+            generateLayout(stage, new Button[]{imag, pi, bE});
+        });
+        RadioMenuItem mMatrix = new RadioMenuItem("Matrix");
+        mMatrix.setToggleGroup(tg);
+        mMatrix.setOnAction(e -> {
+            mode = mMatrix.getText();
+            generateLayout(stage, new Button[]{create, view, add,
+                    subtract, multiply, gaussJordan, factor,
+                    determinant, inverse, matHelp});
+        });
+        RadioMenuItem mSet = new RadioMenuItem("Set");
+        mSet.setToggleGroup(tg);
+        mSet.setOnAction(e -> {
+            mode = mSet.getText();
+            generateLayout(stage, new Button[]{nullSet});
+        });
 
-        currentMode = new Label(mode);
-        generateLayout(stage, settings, help);
+        Menu modes = new Menu("Modes");
+        modes.getItems().addAll(mAlgebra, mMatrix, mSet);
+
+        Menu settings = new Menu("Settings");
+        settings.getItems().addAll(approximation, fullscreen, help);
+
+        menuBar.getMenus().addAll(modes, settings);
+
+        generateLayout(stage, new Button[]{imag, pi, bE});
 
         stage.setTitle("Algebra Processor");
         stage.show();
+    }
+
+    /**
+     * Method that sets the onActionListener of the button given in the
+     * parameter, based on which button it is (given by the int parameter).
+     * @param button The button whose onActionListener is set.
+     * @param i Int whose value determines which button it is: 0 is add,
+     * 1 is subtract, 2 is multipy, 3 is gaussJordan, 4 is factor, 5 is
+     * determinant, 6 is inverse.
+     */
+    public void setMatrixButton(Button button, int i) {
+        button.setOnAction(e -> {
+            if (matrices.size() == 0) {
+                Alert alert = new Alert(AlertType.INFORMATION);
+                alert.setTitle("No Matrices");
+                alert.setHeaderText("No matrices to " + (i == 0 ? "add"
+                        : i == 1 ? "subtract" : i == 2 ? "multiply"
+                        : i == 3 ? "solve" : i == 4 ? " factor"
+                        : i == 5 ? "compute determinant" : "compute inverse")
+                        + ".");
+                alert.setContentText("Click \"Create Matrix\" button.");
+                alert.showAndWait();
+            } else {
+                Stage determin = new Stage();
+                determin.setTitle(i == 0 ? "Addition" : i == 1 ? "Subtraction"
+                        : i == 2 ? "Multiplication" : i == 3
+                        ? "Gauss-Jordan Elimination" : i == 4
+                        ? "LU Factorization" : i == 5 ? "Determinant"
+                                : "Inverse");
+                HBox scenery = new HBox();
+                VBox layers = new VBox();
+                TextArea display = new TextArea();
+                display.setFont(font);
+                display.setEditable(false);
+                Button[] buttons = new Button[Math.min(4, matrices.size())];
+                int j = 0, k = 0;
+                boolean[] first = {true};
+                Matrix[] firstMatrix = {null};
+                for (Map.Entry<String, Matrix> entry : matrices.entrySet()) {
+                    Button name = new Button(entry.getKey());
+                    name.setOnAction(c -> {
+                        try {
+                            if (i == 0 || i == 1 || i == 2) {
+                                // Binary operations
+                                if (first[0]) {
+                                    first[0] = false;
+                                    firstMatrix[0] = matrices.get(
+                                            name.getText());
+                                    display.setText(firstMatrix[0] + "\n\n");
+                                } else {
+                                    first[0] = true;
+                                    Matrix secondMatrix
+                                        = matrices.get(name.getText());
+                                    display.appendText(secondMatrix + (i == 0 ? " +"
+                                            : i == 1 ? " -" : " *") + "\n");
+                                    for (int g = 0;
+                                            g < 2 * secondMatrix.col + 5;
+                                            g++) {
+                                        display.appendText("-");
+                                    }
+                                    display.appendText(
+                                            "\n" + (i == 0 ? firstMatrix[0]
+                                                    .add(secondMatrix)
+                                            : i == 1 ? firstMatrix[0]
+                                                    .subtract(secondMatrix)
+                                            : firstMatrix[0]
+                                                    .multiply(secondMatrix)));
+                                }
+                            } else {
+                                display.setText(name.getText() + "\n");
+                                if (i == 3) {
+                                    Matrix jordan = matrices.get(
+                                            name.getText());
+                                    display.appendText("\n" + jordan
+                                            + "\n\n" + jordan.gaussJordan());
+                                } else if (i == 4) {
+                                    Matrix factorize = matrices.get(
+                                            name.getText());
+                                    Matrix[] lu = factorize.LUFactorization();
+                                    display.appendText("A:\n" + factorize
+                                            + "\n\nP:\n" + lu[0] + "\n\nL:\n"
+                                            + lu[1] + "\n\nU:\n" + lu[2]);
+                                } else if (i == 5) {
+                                    display.setText(name.getText() + "\n"
+                                            + matrices.get(name.getText())
+                                            + "\n\nDeterminant: " + matrices
+                                            .get(name.getText())
+                                            .determinant());
+                                } else {
+                                    display.setText(name.getText() + "\n"
+                                            + matrices.get(name.getText())
+                                            + "\n\nInverse:\n" + matrices
+                                            .get(name.getText()).inverse());
+                                }
+                            }
+                        } catch (IllegalDimensionException iDE) {
+                            display.setText(iDE.getMessage());
+                        }
+                    });
+                    buttons[j] = name;
+                    j++;
+                    k++;
+                    if (j > 3) {
+                        layers.getChildren().addAll(new ToolBar(buttons));
+                        buttons = new Button[Math.min(4, matrices.size() - k)];
+                        j = 0;
+                    }
+                }
+                if (j != 0) {
+                    layers.getChildren().addAll(new ToolBar(buttons));
+                }
+                scenery.getChildren().addAll(layers, display);
+                determin.setScene(new Scene(scenery));
+                determin.show();
+            }
+        });
     }
 
     /**
@@ -862,20 +564,13 @@ public class UserInterface extends Application implements Serializable {
      * of buttons (no TextField or Enter button). All modes share the same lower
      * area of the BorderPane.
      * @param stage The default stage.
-     * @param settings Lower-left settings button.
-     * @param help Lower-right help button.
+     * @param buttons Array of buttons that belong to the toolbar placed at the
+     * top of the stage.
      */
-    public void generateLayout(Stage stage, Button settings, Button help) {
+    public void generateLayout(Stage stage, Button[] buttons) {
         BorderPane main = new BorderPane();
-        AnchorPane bottomAnchor = new AnchorPane();
-        HBox sett = new HBox(5);
-        sett.getChildren().addAll(settings, currentMode);
+        Label currMode = new Label("Mode: " + mode);
         if (mode.equals("Algebra") || mode.equals("Set")) {
-            if (mode.equals("Algebra")) {
-                buttons = new ToolBar(imag, pi, bE);
-            } else {
-                buttons = new ToolBar(nullSet);
-            }
             AnchorPane topAnchor = new AnchorPane();
             VBox topmost = new VBox();
             HBox top = new HBox(5);
@@ -892,7 +587,7 @@ public class UserInterface extends Application implements Serializable {
                     try {
                         // Creates an Expression and factors it,
                         // then if it is a equation, solves it.
-                        boolean appro = approx.getValue().equals("Exact");
+                        boolean appro = ofApprox.equals("Exact");
                         Expression exp = new Expression(algebra.getText());
                         output.setText("Standard Form:" + (appro ? exp
                                 : exp.approx().toStringDecimal(ofDigits))
@@ -960,21 +655,17 @@ public class UserInterface extends Application implements Serializable {
             AnchorPane.setLeftAnchor(algebra, 4.0);
             AnchorPane.setRightAnchor(algebra, 50.0);
 
-            topmost.getChildren().addAll(topAnchor, buttons);
-            main.setTop(topmost);
+            topmost.getChildren().addAll(
+                    topAnchor, new ToolBar(buttons), output);
+            main.setTop(new VBox(menuBar, topmost));
         } else {
             output.setFont(font);
             output.setText("Create a matrix first by using"
                     + " the \"Create Matrix\" Button.");
-            buttons = new ToolBar(create, view, add, subtract, multiply,
-                    gaussJordan, factor, determinant, inverse, matHelp);
-            main.setTop(buttons);
+            main.setTop(new VBox(menuBar, new ToolBar(buttons)));
         }
-        bottomAnchor.getChildren().addAll(help, sett);
-        AnchorPane.setLeftAnchor(settings, 4.0);
-        AnchorPane.setRightAnchor(help, 4.0);
+        main.setBottom(currMode);
         main.setCenter(output);
-        main.setBottom(bottomAnchor);
 
         Platform.runLater(() -> algebra.requestFocus());
         // To get focus off the TextArea and on the TextField.
