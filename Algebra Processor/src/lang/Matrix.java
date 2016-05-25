@@ -189,8 +189,8 @@ public class Matrix implements Serializable {
         for (int i = 0; i < matrix[0].length && pivotRow < matrix.length; i++) {
             if (matrix[pivotRow][i].equals(ZERO)) {
                 boolean isDone = false;
-                for(int j = pivotRow + 1; j < matrix.length && !isDone; j++) {
-                    if(!matrix[j][i].equals(ZERO)) {
+                for (int j = pivotRow + 1; j < matrix.length && !isDone; j++) {
+                    if (!matrix[j][i].equals(ZERO)) {
                         interChange(matrix, pivotRow, j);
                         interChange(inverse, pivotRow, j);
                         isDone = true;
@@ -251,9 +251,13 @@ public class Matrix implements Serializable {
 
     /**
      * Gauss-Jordan Elimination method which solves the current matrix.
+     * @throws IllegalDimensionException If this method is called on a vector.
      * @return The solved matrix.
      */
-    public Matrix gaussJordan() {
+    public Matrix gaussJordan() throws IllegalDimensionException {
+        if (col == 1) {
+            throw new IllegalDimensionException("Cannot solve a vector.");
+        }
         Constant[][] matrix = new Constant[row][col];
         for (int i = 0; i < matrix.length; i++) {
             for (int j = 0; j < matrix[i].length; j++) {
