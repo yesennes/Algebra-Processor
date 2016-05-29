@@ -2,16 +2,8 @@ package lang;
 
 import java.io.Serializable;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Iterator;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
 import java.util.regex.Matcher;
 
 /**
@@ -19,7 +11,7 @@ import java.util.regex.Matcher;
  *
  * @author Luke Senseney
  */
-public class Expression implements Comparable<Expression>, Serializable {
+public class Expression implements Comparable<Expression>, Serializable, Cloneable {
 	private static final long serialVersionUID = 1L;
 	/**
 	 * Term array that the sum of is this expression, or are equal to 0 if isEquation.
@@ -96,7 +88,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 		if(inParen != 0) {
 			throw new MathFormatException("There is an unmatched start parenthese.");
 		}
-		Expression retrn = new Expression();
+		Expression retrn = ZERO.clone();
 		// Separates into terms. It is impossible to make a regex pattern in java that matches an arbitrary number
 		// (please notify me if it isn't) of levels of parentheses so it starts from 0 and steps up.
 		Matcher findParen = ParenthesesManager.getTerm(0).matcher(s);
@@ -378,7 +370,7 @@ public class Expression implements Comparable<Expression>, Serializable {
 					iter.remove();
 					terms.addAll(new Expression(terms.get(i)).multiply(current.getKey()
 							.raise(current.getValue().terms.get(0).coeff)).terms);
-					terms.remove(i);
+					terms.remove(i--);
 				}
 			}
 		}
@@ -843,8 +835,13 @@ public class Expression implements Comparable<Expression>, Serializable {
 	@Override
 	@SuppressWarnings("unchecked")
 	public Expression clone() {
-		Expression a = new Expression((Collection<Term>)terms.clone(), isEquation);
-		a.terms.replaceAll(Term::clone);
+        Expression a = null;
+        try {
+            a = (Expression) super.clone();
+            a.terms = (ArrayList<Term>) a.terms.clone();
+            a.terms.replaceAll(Term::clone);
+        }catch (CloneNotSupportedException e){
+        }
 		return a;
 	}
 
