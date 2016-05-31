@@ -17,7 +17,7 @@ import java.util.TreeMap;
  * @author Luke Senseney
  */
 public class Constant extends Number implements Comparable<Number>, Serializable {
-	private static final long serialVersionUID = 01L;
+	private static final long serialVersionUID = 1L;
 	/**
 	 * The numerator of this number.
 	 */
@@ -474,7 +474,7 @@ public class Constant extends Number implements Comparable<Number>, Serializable
 			return true;
 		}
 		Constant a = (Constant)o;
-		return a.doubleValue() == doubleValue();
+		return a.numerator.equals(numerator) && a.denominator.equals(denominator) && a.roots.equals(roots);
 	}
 
 	/*

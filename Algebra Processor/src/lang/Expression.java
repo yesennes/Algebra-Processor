@@ -210,7 +210,7 @@ public class Expression implements Comparable<Expression>, Serializable, Cloneab
 			// sets the numerator of pow to 1 or -1 depending on sign.
 			pow.setNumerator(pow.getNumerator().compareTo(BigInteger.ZERO) < 0 ? BigInteger.ONE.negate() : BigInteger.ONE);
 			d.put(retrn, new Expression(new Term(pow)));
-			return new Expression(new Term(Constant.ONE.clone(), new TreeMap<>(), d));
+			return new Expression(new Term(Constant.ONE, new TreeMap<>(), d));
 		}
 		return retrn;
 	}
@@ -366,7 +366,7 @@ public class Expression implements Comparable<Expression>, Serializable, Cloneab
 				Entry<Expression, Expression> current = iter.next();
 				if(current.getValue().isConstant()
 						&& (current.getValue().terms.get(0).coeff.getDenominator().equals(BigInteger.ONE)
-								|| current.getValue().terms.get(0).coeff.getNumerator().compareTo(BigInteger.ONE) > 0)) {
+								&& current.getValue().terms.get(0).coeff.getNumerator().compareTo(BigInteger.ONE) >= 0)) {
 					iter.remove();
 					terms.addAll(new Expression(terms.get(i)).multiply(current.getKey()
 							.raise(current.getValue().terms.get(0).coeff)).terms);
@@ -514,21 +514,25 @@ public class Expression implements Comparable<Expression>, Serializable, Cloneab
 		for(Expression current : factor()) {
 			HashSet<Character> vars = current.getVars();
 			// Removes i, the imaginary unit, from the variables.
-			vars.remove('\u05D0');
+			vars.remove(Term.interE);
+			vars.remove(Term.interE);
 			for(char cur : vars) {
 				try {
 					Set<Expression> s = current.solveFact(cur);
-					boolean found = false;
 					// Attempts to add this to a existing solution for the current variable, else creates a new one.
-					for(Solution find : solutions) {
+					Iterator<Solution> iter = solutions.iterator();
+                    Solution found = null;
+					while(iter.hasNext() && found == null) {
+                        Solution find = iter.next();
 						if(find.letter == cur) {
-							found = true;
-							find.value.addAll(s);
+							found = find;
+                            iter.remove();
+                            found.value.addAll(s);
 						}
 					}
-					if(!found) {
-						solutions.add(new Solution(cur, s));
-					}
+					if(found == null)
+						found = new Solution(cur, s);
+                    solutions.add(found);
 				} catch(NotAbleToSolve e) {
 
 				}
@@ -631,7 +635,7 @@ public class Expression implements Comparable<Expression>, Serializable, Cloneab
 		}
 		// Attempts to solve for iso. Assumes that it is in one of two general patterns and solves accordingly:
 		// ax^c+bx^c...+d+e...=0 solves to x=(-(d+e...)/(a+b...))^(1/c), where x is iso, c is any expression
-		// without iso and there are any number of terms with x^c or not x.
+		// without iso and there are any number of terms with x^c or no x.
 		// i(ax^c+bx^c...+d+e...)^f+g+h...=0 solves to (((-(g+h...)/i)^(1/f)-(d+e...))/(a+b...))^(1/c), where
 		// x is iso c and f are any expression without iso, there are any number of terms with out x where
 		// g and h or d and e are, and there are any terms with x^c where ax^c+bx^c are.
