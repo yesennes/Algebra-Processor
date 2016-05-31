@@ -88,16 +88,7 @@ public class Term implements Comparable<Term>, Serializable {
 		if(inParen != 0) {
 			throw new MathFormatException("There is an unmatched start parenthese.");
 		}
-		// Checks term is a correctly formatted term.
-		Matcher m = ParenthesesManager.getTerm(0).matcher(term);
-		int level = 0;
-		for(; !m.matches(); level++) {
-			if(level + 1 > max) {
-				throw new MathFormatException("The input is not a term.");
-			}
-			m.usePattern(ParenthesesManager.getTerm(level + 1));
-		}
-		return level;
+		return max;
 	}
 	
 	/**

@@ -89,25 +89,12 @@ public class Expression implements Comparable<Expression>, Serializable, Cloneab
 			throw new MathFormatException("There is an unmatched start parenthese.");
 		}
 		Expression retrn = ZERO.clone();
-		// Separates into terms. It is impossible to make a regex pattern in java that matches an arbitrary number
-		// (please notify me if it isn't) of levels of parentheses so it starts from 0 and steps up.
-		Matcher findParen = ParenthesesManager.getTerm(0).matcher(s);
+		// Separates into terms.
+		Matcher findParen = ParenthesesManager.getTerm(max).matcher(s);
 		// Each iteration finds one term.
-		while(!findParen.hitEnd()) {
-			// Looks for the level of parentheses for the next term.
-			int i = 0;
-			findParen.usePattern(ParenthesesManager.getTerm(0));
-			for(; !findParen.lookingAt(); i++) {
-				if(i + 1 > max) {
-					throw new MathFormatException(
-							"There is an error in your formatting starting somewhere near the start of "
-					+ s.substring(findParen.regionStart()));
-				}
-				findParen.usePattern(ParenthesesManager.getTerm(i + 1));
-			}
+		while(findParen.find()) {
 			// Adds the term to the equation.
-			retrn.terms.add(new Term(findParen.group(), i));
-			findParen.region(findParen.end(), s.length());
+			retrn.terms.add(new Term(findParen.group(), max));
 		}
 		return retrn;
 	}
